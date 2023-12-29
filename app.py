@@ -1,5 +1,5 @@
 import dash     # need Dash version 2.9.0 or higher
-from dash import dcc, html, callback, Output, Input, State, ctx, ALL, MATCH, no_update
+from dash import dcc, html, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update
 from dotenv import load_dotenv
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
@@ -14,7 +14,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 def section(label):
     return dbc.Row([
-        dbc.Col(dbc.Button(label, id = {'section_button' : label})),
+        dbc.Col(dbc.Button(label, id = {'section_button' : label}), width = 1),
         dbc.Col(html.Div(id = {'section_content' : label}))
     ])
     
@@ -56,16 +56,32 @@ def button_section(text, delimiter):
     return section_content
 
 @callback(
+    Output({'text_button' : ALL}, 'color'),
+    Output({'text_button' : ALL}, 'disabled'),
     Output('mode', 'data'),
     Input({'section_button' : ALL}, 'n_clicks'),
+    State({'text_button' : ALL}, 'children'),
+    State({'mode' : ALL, 't' : ALL}, 'children'),
+    State({'mode' : ALL, 't' : ALL}, 'id'),
     prevent_initial_call = True
 )
-def update_mode(trigger):
-    out_mode = no_update
+def update_mode(trigger, text_buttons, section_buttons, section_button_ids):
     button = ctx.triggered_id.get('section_button', None)
     if button:
         out_mode = button
-    return out_mode
+        mode_buttons = [text for text, i in zip(section_buttons, section_button_ids) if i['mode'] == button]
+        out_color = []
+        out_disabled = []
+        for button in text_buttons:
+            if (button in mode_buttons):
+                out_color.append('success')
+                out_disabled.append(True)
+            else:
+                out_color.append('primary')
+                out_disabled.append(False)
+    else:
+        raise PreventUpdate
+    return out_color, out_disabled, out_mode
 
 @callback(
     Output('form', 'children'),
@@ -111,12 +127,23 @@ def activate_text_button(trigger, is_active):
     State({'text_button' : ALL}, 'active'),
     State({'text_button' : ALL}, 'children'),
     State('mode', 'data'),
+    State({'section_content' : ALL}, 'id'),
+    State('form', 'n_submit_timestamp'),
     prevent_initial_call = True
 )
-def add_to_section(trigger, is_active, buttons, mode):
-    print(ctx.triggered_prop_ids)
-    print([button for button, i_a in zip(buttons, is_active) if i_a])
-    raise PreventUpdate
+def add_to_section(trigger, is_active, buttons, mode, sections, submit_time):
+    if ctx.triggered_id:
+        out_active = [False for button in is_active]
+        out_content = [no_update for section in sections]
+        selected_text = [button for button, i_a in zip(buttons, is_active) if i_a]
+        selected_text = ' '.join(selected_text)
+        mode_index = sections.index({'section_content' : mode})
+        out_mode_content = Patch()
+        out_mode_content.append(dbc.Button(selected_text, id = {'mode' : mode, 't' : submit_time}))
+        out_content[mode_index] = out_mode_content
+    else:
+        raise PreventUpdate
+    return out_active, out_content        
 
 
 if __name__ == '__main__':
