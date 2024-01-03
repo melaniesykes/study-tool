@@ -20,10 +20,15 @@ def section(label):
     
 app.layout = html.Div([
     dcc.Markdown(id = {'index' : 'main_label'}),
-    dcc.Store(data = 'Labels', id = 'mode'),
+    dcc.Store(data = 'Labels', id = 'section'),
     section('Labels'),
     section('Categories'),
     section('Properties'),
+    html.Br(),
+    dcc.Markdown('Mode'),
+    dcc.Store(data = 'move', id = 'mode'),
+    dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move'),
+    html.Br(),
 	dbc.Button('Words', id = {'button' : 'words'}),
 	dbc.Button('Sentences', id = {'button' : 'sentences'}),
 	dbc.Button('Text', id = {'button' : 'text'}),
@@ -58,18 +63,18 @@ def button_section(text, delimiter):
 @callback(
     Output({'text_button' : ALL}, 'color'),
     Output({'text_button' : ALL}, 'disabled'),
-    Output('mode', 'data'),
+    Output('section', 'data'),
     Input({'section_button' : ALL}, 'n_clicks'),
     State({'text_button' : ALL}, 'children'),
-    State({'mode' : ALL, 't' : ALL}, 'children'),
-    State({'mode' : ALL, 't' : ALL}, 'id'),
+    State({'section' : ALL, 't' : ALL}, 'children'),
+    State({'section' : ALL, 't' : ALL}, 'id'),
     prevent_initial_call = True
 )
-def update_mode(trigger, text_buttons, section_buttons, section_button_ids):
+def select_section(trigger, text_buttons, section_buttons, section_button_ids):
     button = ctx.triggered_id.get('section_button', None)
     if button:
         out_mode = button
-        mode_buttons = [text for text, i in zip(section_buttons, section_button_ids) if i['mode'] == button]
+        mode_buttons = [text for text, i in zip(section_buttons, section_button_ids) if i['section'] == button]
         out_color = []
         out_disabled = []
         for button in text_buttons:
@@ -126,7 +131,7 @@ def activate_text_button(trigger, is_active):
     Input('form', 'n_submit'),
     State({'text_button' : ALL}, 'active'),
     State({'text_button' : ALL}, 'children'),
-    State('mode', 'data'),
+    State('section', 'data'),
     State({'section_content' : ALL}, 'id'),
     State('form', 'n_submit_timestamp'),
     prevent_initial_call = True
@@ -139,7 +144,7 @@ def add_to_section(trigger, is_active, buttons, mode, sections, submit_time):
         selected_text = ' '.join(selected_text)
         mode_index = sections.index({'section_content' : mode})
         out_mode_content = Patch()
-        out_mode_content.append(dbc.Button(selected_text, id = {'mode' : mode, 't' : submit_time}))
+        out_mode_content.append(dbc.Button(selected_text, id = {'section' : mode, 't' : submit_time}))
         out_content[mode_index] = out_mode_content
     else:
         raise PreventUpdate
