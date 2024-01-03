@@ -29,31 +29,46 @@ app.layout = html.Div([
     dcc.Store(data = 'move', id = 'mode'),
     dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move'),
     html.Br(),
-	dbc.Button('Words', id = {'button' : 'words'}),
-	dbc.Button('Sentences', id = {'button' : 'sentences'}),
-	dbc.Button('Text', id = {'button' : 'text'}),
-	dbc.Form(dcc.Input(id = {'text' : 'text'}), id = 'form')
+	dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
+	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'words'}),
+	dbc.Form(dcc.Input(id = {'input' :'input', 'form' : 'words'}), id = {'form' : 'words'}),
+    html.Br(),
+	dbc.Button('Sentences', id = {'format_button' : 'button', 'form' : 'sentences'}),
+	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
+	dbc.Form(dcc.Input(id = {'input' : 'input', 'form' : 'sentences'}), id = {'form' : 'sentences'})
 	
 ])
 
-def button_section(text, delimiter):
+def button_section(text, section):
+    if section == 'words':
+        delimiter = ' '
+        suffix = ''
+    else:
+        delimiter = suffix = '.'
     words = text.split(delimiter)
-    suffix = delimiter if delimiter == '.' else ''
     section_content = []
     for n, word in enumerate(words):
         if word:
             section_content.append(
                 dbc.Button(
-                    id = {'text_button' : n},
+                    id = {'form' : section, 'text_button' : n},
                     children = word + suffix, 
                     type = 'button',
                     outline = True,
                     color = 'primary'
                 )
             )
+    if section == 'sentences':
+        section_content.append(
+            dbc.Button(
+                id = {'form' : section, 'break_down_button' : n},
+                children = 'DISSECT', 
+                color = 'secondary'
+            )
+        )
     section_content.append(
         dbc.Button(
-            id = {'submit_button' : n},
+            id = {'form' : section, 'submit_button' : n},
             children = 'SUBMIT', 
             color = 'secondary'
         )
@@ -61,11 +76,11 @@ def button_section(text, delimiter):
     return section_content
 
 @callback(
-    Output({'text_button' : ALL}, 'color'),
-    Output({'text_button' : ALL}, 'disabled'),
+    Output({'form' : ALL, 'text_button' : ALL}, 'color'),
+    Output({'form' : ALL, 'text_button' : ALL}, 'disabled'),
     Output('section', 'data'),
-    Input({'section_button' : ALL}, 'n_clicks'),
-    State({'text_button' : ALL}, 'children'),
+    Input({'form' : ALL, 'section_button' : ALL}, 'n_clicks'),
+    State({'form' : ALL, 'text_button' : ALL}, 'children'),
     State({'section' : ALL, 't' : ALL}, 'children'),
     State({'section' : ALL, 't' : ALL}, 'id'),
     prevent_initial_call = True
@@ -89,34 +104,31 @@ def select_section(trigger, text_buttons, section_buttons, section_button_ids):
     return out_color, out_disabled, out_mode
 
 @callback(
-    Output('form', 'children'),
-    Input({'button' : ALL}, 'n_clicks'),
-    State({'text_button' : ALL}, 'children'),
-	State({'text' : ALL}, 'value'),
+    Output({'form' : MATCH}, 'children'),
+    Input({'form' : MATCH, 'format_button' : ALL}, 'n_clicks'),
+    State({'form' : MATCH, 'text_button' : ALL}, 'children'),
+	State({'form' : MATCH, 'input' : ALL}, 'value'),
     prevent_initial_call = True
 )
 def switch_form_format(trigger, button_text, input_text):
     out_buttons = no_update
-    button = ctx.triggered_id.get('button', None)
-    text = None
-    if input_text:
-        text = input_text[0]
-    elif button_text:
+    button = ctx.triggered_id.get('format_button', None)
+    form = ctx.triggered_id.get('form', None)
+
+    if button_text and (button == 'text'):
         text = ' '.join(button_text)
-    if text:
-        if button == 'words':
-            out_buttons = button_section(text, ' ')
-        elif button == 'sentences':
-            out_buttons = button_section(text, '.')
-        elif button == 'text':
-            out_buttons = dcc.Input(text, id = {'text' : 'text'})
+        out_buttons = dcc.Input(text, id = {'input' : 'input', 'form' : form})
+    elif input_text and (button == 'button'):
+        text = input_text[0]    
+        if text:
+            out_buttons = button_section(text, form)
 
     return out_buttons
-
+'''
 @callback(
-    Output({'text_button' : MATCH}, 'active', allow_duplicate=True),
-    Input({'text_button' : MATCH}, 'n_clicks'),
-    State({'text_button' : MATCH}, 'active'),
+    Output({'form' : ALL, 'text_button' : MATCH}, 'active', allow_duplicate=True),
+    Input({'form' : ALL, 'text_button' : MATCH}, 'n_clicks'),
+    State({'form' : ALL, 'text_button' : MATCH}, 'active'),
     prevent_initial_call = True
 )
 def activate_text_button(trigger, is_active):
@@ -125,12 +137,13 @@ def activate_text_button(trigger, is_active):
         out_active = not is_active
     return out_active
 
+
 @callback(
-    Output({'text_button' : ALL}, 'active', allow_duplicate=True),
+    Output({'form' : ALL, 'text_button' : ALL}, 'active', allow_duplicate=True),
     Output({'section_content' : ALL}, 'children'),
-    Input('form', 'n_submit'),
-    State({'text_button' : ALL}, 'active'),
-    State({'text_button' : ALL}, 'children'),
+    Input({'form' : ALL}, 'n_submit'),
+    State({'form' : ALL, 'text_button' : ALL}, 'active'),
+    State({'form' : ALL, 'text_button' : ALL}, 'children'),
     State('section', 'data'),
     State({'section_content' : ALL}, 'id'),
     State('form', 'n_submit_timestamp'),
@@ -149,7 +162,7 @@ def add_to_section(trigger, is_active, buttons, mode, sections, submit_time):
     else:
         raise PreventUpdate
     return out_active, out_content        
-
+'''
 
 if __name__ == '__main__':
 	app.run(debug=True)
