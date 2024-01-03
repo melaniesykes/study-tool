@@ -58,14 +58,6 @@ def button_section(text, section):
                     color = 'primary'
                 )
             )
-    if section == 'sentences':
-        section_content.append(
-            dbc.Button(
-                id = {'form' : section, 'break_down_button' : n},
-                children = 'DISSECT', 
-                color = 'secondary'
-            )
-        )
     section_content.append(
         dbc.Button(
             id = {'form' : section, 'submit_button' : n},
@@ -104,7 +96,7 @@ def select_section(trigger, text_buttons, section_buttons, section_button_ids):
     return out_color, out_disabled, out_mode
 
 @callback(
-    Output({'form' : MATCH}, 'children'),
+    Output({'form' : MATCH}, 'children', allow_duplicate=True),
     Input({'form' : MATCH, 'format_button' : ALL}, 'n_clicks'),
     State({'form' : MATCH, 'text_button' : ALL}, 'children'),
 	State({'form' : MATCH, 'input' : ALL}, 'value'),
@@ -124,6 +116,23 @@ def switch_form_format(trigger, button_text, input_text):
             out_buttons = button_section(text, form)
 
     return out_buttons
+
+@callback(
+    Output({'form' : 'words'}, 'children', allow_duplicate=True),
+    Input({'form' : 'sentences', 'text_button' : ALL}, 'n_clicks'),
+    State({'form' : 'sentences', 'text_button' : ALL}, 'id'),
+    State({'form' : 'sentences', 'text_button' : ALL}, 'children'),
+    prevent_initial_call = True
+)
+def break_down_sentence(n_clicks, sentence_buttons, sentences):
+    out_buttons = no_update
+    trigger = ctx.triggered_id
+    if trigger:
+        trigger_index = sentence_buttons.index(trigger)
+        sentence = sentences[trigger_index]
+        out_buttons = button_section(sentence, 'words')
+    return out_buttons
+
 '''
 @callback(
     Output({'form' : ALL, 'text_button' : MATCH}, 'active', allow_duplicate=True),
