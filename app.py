@@ -34,8 +34,7 @@ app.layout = html.Div([
     section('Properties'),
     html.Br(),
     dcc.Markdown('Mode'),
-    dcc.Store(data = 'move', id = 'mode'),
-    dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move'),
+    dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move', id = 'mode'),
     html.Br(),
 	dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
 	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'words'}),
@@ -54,14 +53,15 @@ def button_section(text, section):
         suffix = ''
     else:
         delimiter = suffix = '.'
-    words = text.split(delimiter)
+    words = text.split(delimiter) if isinstance(text, str) else [t.replace(delimiter, '') for t in text]
     section_content = []
+    n = 0
     for n, word in enumerate(words):
         if word:
             section_content.append(
                 dbc.Button(
                     id = {'form' : section, 'text_button' : n},
-                    children = word + suffix, 
+                    children = word.strip() + suffix, 
                     type = 'button',
                     outline = True,
                     color = 'primary'
@@ -81,7 +81,7 @@ def button_section(text, section):
     Output({'form' : ALL, 'text_button' : ALL}, 'color'),
     Output({'form' : ALL, 'text_button' : ALL}, 'disabled'),
     Output('section', 'data'),
-    Input({'form' : ALL, 'section_button' : ALL}, 'n_clicks'),
+    Input({'section_button' : ALL}, 'n_clicks'),
     State({'form' : ALL, 'text_button' : ALL}, 'children'),
     State({'section' : ALL, 't' : ALL}, 'children'),
     State({'section' : ALL, 't' : ALL}, 'id'),
@@ -174,27 +174,35 @@ def add_to_section(form_update, form_update_ids):
     return out_content
 
 @callback(
+    Output({'form' : MATCH}, 'children', allow_duplicate=True),
     Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
     Output({'form' : MATCH, 'text_button' : ALL}, 'active', allow_duplicate=True),
     Input({'form' : MATCH}, 'n_submit'),
     State({'form' : MATCH, 'text_button' : ALL}, 'active'),
     State({'form' : MATCH, 'text_button' : ALL}, 'children'),
     State('section', 'data'),
+    State('mode', 'value'),
     State({'form' : MATCH}, 'n_submit_timestamp'),
     State({'section_content' : ALL}, 'id'),
     prevent_initial_call = True
 )
-def handle_submission(trigger, is_active, buttons, mode, submit_time, sections):
+def handle_submission(trigger, is_active, buttons, selected_section, mode, submit_time, sections):
+    out_buttons = out_content = no_update
+    out_active = [no_update for button in buttons]
     if ctx.triggered_id:
-        out_active = [False for button in is_active]
         selected_text = [button for button, i_a in zip(buttons, is_active) if i_a]
         selected_text = ' '.join(selected_text)
-        mode_index = sections.index({'section_content' : mode})
-        out_content = [mode, mode_index, selected_text, submit_time, len(sections)]
+        selected_section_index = sections.index({'section_content' : selected_section})
+        if mode == 'add':
+            out_active = [False for button in is_active]
+        if mode in ('add', 'move'):
+            out_content = [selected_section, selected_section_index, selected_text, submit_time, len(sections)]
+        if mode in ('delete', 'move'):
+            non_selected_text = [button for button, i_a in zip(buttons, is_active) if not i_a]
+            out_buttons = button_section(non_selected_text, ctx.triggered_id['form'])
     else:
         raise PreventUpdate
-    # raise PreventUpdate
-    return out_content, out_active
+    return out_buttons, out_content, out_active
 
 
 if __name__ == '__main__':
