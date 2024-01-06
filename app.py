@@ -17,6 +17,14 @@ def section(label):
         dbc.Col(dbc.Button(label, id = {'section_button' : label}), width = 1),
         dbc.Col(html.Div(id = {'section_content' : label}))
     ])
+
+def text_form(form_type):
+    return dbc.Form(
+        dcc.Input(id = {'input' : 'input', 'form' : form_type}),
+        id = {'form' : form_type}
+    )
+
+
     
 app.layout = html.Div([
     dcc.Markdown(id = {'index' : 'main_label'}),
@@ -31,12 +39,13 @@ app.layout = html.Div([
     html.Br(),
 	dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
 	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'words'}),
-	dbc.Form(dcc.Input(id = {'input' :'input', 'form' : 'words'}), id = {'form' : 'words'}),
+    dcc.Store({'form' : 'words', 'form_dummy' : 'form_dummy'}),
+	text_form('words'),
     html.Br(),
 	dbc.Button('Sentences', id = {'format_button' : 'button', 'form' : 'sentences'}),
 	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
-	dbc.Form(dcc.Input(id = {'input' : 'input', 'form' : 'sentences'}), id = {'form' : 'sentences'})
-	
+    dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
+    text_form('sentences')
 ])
 
 def button_section(text, section):
@@ -62,7 +71,8 @@ def button_section(text, section):
         dbc.Button(
             id = {'form' : section, 'submit_button' : n},
             children = 'SUBMIT', 
-            color = 'secondary'
+            color = 'secondary',
+            type = 'submit'
         )
     )
     return section_content
@@ -133,11 +143,10 @@ def break_down_sentence(n_clicks, sentence_buttons, sentences):
         out_buttons = button_section(sentence, 'words')
     return out_buttons
 
-'''
 @callback(
-    Output({'form' : ALL, 'text_button' : MATCH}, 'active', allow_duplicate=True),
-    Input({'form' : ALL, 'text_button' : MATCH}, 'n_clicks'),
-    State({'form' : ALL, 'text_button' : MATCH}, 'active'),
+    Output({'form' : MATCH, 'text_button' : MATCH}, 'active', allow_duplicate=True),
+    Input({'form' : MATCH, 'text_button' : MATCH}, 'n_clicks'),
+    State({'form' : MATCH, 'text_button' : MATCH}, 'active'),
     prevent_initial_call = True
 )
 def activate_text_button(trigger, is_active):
@@ -146,32 +155,47 @@ def activate_text_button(trigger, is_active):
         out_active = not is_active
     return out_active
 
-
 @callback(
-    Output({'form' : ALL, 'text_button' : ALL}, 'active', allow_duplicate=True),
     Output({'section_content' : ALL}, 'children'),
-    Input({'form' : ALL}, 'n_submit'),
-    State({'form' : ALL, 'text_button' : ALL}, 'active'),
-    State({'form' : ALL, 'text_button' : ALL}, 'children'),
-    State('section', 'data'),
-    State({'section_content' : ALL}, 'id'),
-    State('form', 'n_submit_timestamp'),
+    Input({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'data'),
+    State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
     prevent_initial_call = True
 )
-def add_to_section(trigger, is_active, buttons, mode, sections, submit_time):
+def add_to_section(form_update, form_update_ids):
+    trigger = ctx.triggered_id
+    if trigger:
+        update_index = form_update_ids.index(trigger)
+        [mode, mode_index, selected_text, submit_time, n_sections] = form_update[update_index]
+        selected_text = selected_text.replace(',', '').replace('.', '')
+        out_mode_content = Patch()
+        out_mode_content.append(dbc.Button(selected_text, id = {'section' : mode, 't' : submit_time}))
+        out_content = [no_update for section in range(n_sections)]
+        out_content[mode_index] = out_mode_content
+    return out_content
+
+@callback(
+    Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
+    Output({'form' : MATCH, 'text_button' : ALL}, 'active', allow_duplicate=True),
+    Input({'form' : MATCH}, 'n_submit'),
+    State({'form' : MATCH, 'text_button' : ALL}, 'active'),
+    State({'form' : MATCH, 'text_button' : ALL}, 'children'),
+    State('section', 'data'),
+    State({'form' : MATCH}, 'n_submit_timestamp'),
+    State({'section_content' : ALL}, 'id'),
+    prevent_initial_call = True
+)
+def handle_submission(trigger, is_active, buttons, mode, submit_time, sections):
     if ctx.triggered_id:
         out_active = [False for button in is_active]
-        out_content = [no_update for section in sections]
         selected_text = [button for button, i_a in zip(buttons, is_active) if i_a]
         selected_text = ' '.join(selected_text)
         mode_index = sections.index({'section_content' : mode})
-        out_mode_content = Patch()
-        out_mode_content.append(dbc.Button(selected_text, id = {'section' : mode, 't' : submit_time}))
-        out_content[mode_index] = out_mode_content
+        out_content = [mode, mode_index, selected_text, submit_time, len(sections)]
     else:
         raise PreventUpdate
-    return out_active, out_content        
-'''
+    # raise PreventUpdate
+    return out_content, out_active
+
 
 if __name__ == '__main__':
 	app.run(debug=True)
