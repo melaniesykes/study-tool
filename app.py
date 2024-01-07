@@ -9,7 +9,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection', data = []),
-    dcc.Store(id = 'nav_structure', data = {'' : {'children' : []}}),
+    dcc.Store(id = 'nav_structure', data = {'' : blank_nav_structure()}),
     dcc.Store(id = 'concept_data', data = {'' : blank_concept()}),
     html.Div(id = 'nav_display')
 ])

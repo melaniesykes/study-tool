@@ -38,22 +38,25 @@ def button_section(text, section):
     Output({'form' : ALL, 'text_button' : ALL}, 'color'),
     Output({'form' : ALL, 'text_button' : ALL}, 'disabled'),
     Output('section_content', 'children', allow_duplicate = True),
-    Input('nav_selection', 'data'),
+    Input('nav_structure', 'data'),
     Input('section_tabs', 'active_tab'),
     State({'form' : ALL, 'text_button' : ALL}, 'children'),
     State('concept_data', 'data'),
+    State('nav_selection', 'data'),
     prevent_initial_call = True
 )
-def select_section(nav_selection, selected_tab, text_buttons, concept_data):
+def select_section(nav_structure, selected_tab, text_buttons, concept_data, nav_selection):
     print('data', concept_data)
+    print('nav_structre', nav_structure)
     if ctx.triggered_id:
         out_color = []
         out_disabled = []
         path = '-'.join(nav_selection)
         buttons = concept_data[path][selected_tab]
+        button_ids = nav_structure[path][selected_tab]
         out_content = [
-            dbc.Button(button_text, id = {'section' : selected_tab, 't' : n})
-            for n, button_text in enumerate(buttons)
+            dbc.Button(button_text, id = {'potential_concept' : button_id})
+            for button_id, button_text in zip(button_ids, buttons)
         ]
 
         for button in text_buttons:
@@ -127,20 +130,24 @@ def break_down_sentence(n_clicks, sentence_buttons, sentences):
     Input({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'data'),
     State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
     State('nav_selection', 'data'),
+    State('concept_data', 'data'),
     prevent_initial_call = True
 )
-def add_to_section(form_update, form_update_ids, nav_selection):
+def add_to_section(form_update, form_update_ids, nav_selection, concept_data):
     trigger = ctx.triggered_id
     if trigger:
         update_index = form_update_ids.index(trigger)
-        [mode, selected_text, submit_time] = form_update[update_index]
+        [mode, selected_text] = form_update[update_index]
         selected_text = selected_text.replace(',', '').replace('.', '')
-        out_mode_content = Patch()
-        out_mode_content.append(dbc.Button(selected_text, id = {'section' : mode, 't' : submit_time}))
-        out_content = out_mode_content
         path = '-'.join(nav_selection)
         out_data = Patch()
         out_data[path][mode].append(selected_text)
+        new_id = '-'.join(nav_selection + [str(concept_data[path]['max_id'])])
+        out_data[path]['max_id'] += 1
+        out_mode_content = Patch()
+        out_mode_content.append(dbc.Button(selected_text, id = {'potential_concept' : new_id}))
+        out_content = out_mode_content
+        
     else:
         raise PreventUpdate
     return out_content, out_data
@@ -154,10 +161,9 @@ def add_to_section(form_update, form_update_ids, nav_selection):
     State({'form' : MATCH, 'text_button' : ALL}, 'children'),
     State('section_tabs', 'active_tab'),
     State('mode', 'value'),
-    State({'form' : MATCH}, 'n_submit_timestamp'),
     prevent_initial_call = True
 )
-def handle_submission(trigger, is_active, buttons, selected_section, mode, submit_time):
+def handle_submission(trigger, is_active, buttons, selected_section, mode):
     out_buttons = out_content = no_update
     out_active = [no_update for button in buttons]
     if ctx.triggered_id and trigger:
@@ -166,7 +172,7 @@ def handle_submission(trigger, is_active, buttons, selected_section, mode, submi
         if mode == 'add':
             out_active = [False for button in is_active]
         if mode in ('add', 'move'):
-            out_content = [selected_section, selected_text, submit_time]
+            out_content = [selected_section, selected_text]
         if mode in ('delete', 'move'):
             non_selected_text = [button for button, i_a in zip(buttons, is_active) if not i_a]
             out_buttons = button_section(non_selected_text, ctx.triggered_id['form'])
