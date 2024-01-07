@@ -11,26 +11,32 @@ load_dotenv()
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP]) 
 
-
-def section(label):
-    return dbc.Row([
-        dbc.Col(dbc.Button(label, id = {'section_button' : label}), width = 1),
-        dbc.Col(html.Div(id = {'section_content' : label}))
-    ])
-
-def text_form(form_type):
-    return dbc.Form(
-        dcc.Input(id = {'input' : 'input', 'form' : form_type}),
-        id = {'form' : form_type}
-    )
+def blank_concept():
+    return {
+        'Name' : [],
+        'Labels' : [],
+        'Categories' : [],
+        'Properties' : []
+    }
 
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection', data = []),
     dcc.Store(id = 'nav_structure', data = dict()),
-    dcc.Store(id = 'concept_data')
+    dcc.Store(id = 'concept_data', data = blank_concept())
 ])
     
 def concept_section(concept):
+    def section(label):
+        return dbc.Row([
+            dbc.Col(dbc.Button(label, id = {'section_button' : label}), width = 1),
+            dbc.Col(html.Div(id = {'section_content' : label}))
+        ])
+
+    def text_form(form_type):
+        return dbc.Form(
+            dcc.Input(id = {'input' : 'input', 'form' : form_type}),
+            id = {'form' : form_type}
+        )
     return html.Div([
     dcc.Markdown(concept, id = {'index' : 'main_label'}),
     dcc.Store(data = 'Labels', id = 'section'),
@@ -43,18 +49,21 @@ def concept_section(concept):
     html.Br(),
 	dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
 	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'words'}),
-    dcc.Store({'form' : 'words', 'form_dummy' : 'form_dummy'}),
+    
 	text_form('words'),
     html.Br(),
 	dbc.Button('Sentences', id = {'format_button' : 'button', 'form' : 'sentences'}),
 	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
-    dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
     text_form('sentences')
 ])
 
 app.layout = dbc.Row([
     dbc.Col(nav_section),
-    dbc.Col(concept_section(None), id = 'concept_section')
+    dbc.Col([
+        html.Div(concept_section(None), id = 'concept_section'),
+        dcc.Store({'form' : 'words', 'form_dummy' : 'form_dummy'}),
+        dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
+    ])
 ])
 
 def button_section(text, section):
@@ -167,14 +176,15 @@ def activate_text_button(trigger, is_active):
 
 @callback(
     Output({'section_content' : ALL}, 'children'),
+    Output('concept_data', 'data', allow_duplicate = True),
     Input({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'data'),
     State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
+    State('nav_selection', 'data'),
     prevent_initial_call = True
 )
-def add_to_section(form_update, form_update_ids):
+def add_to_section(form_update, form_update_ids, nav_selection):
     trigger = ctx.triggered_id
     if trigger:
-        print('adding to section')
         update_index = form_update_ids.index(trigger)
         [mode, mode_index, selected_text, submit_time, n_sections] = form_update[update_index]
         selected_text = selected_text.replace(',', '').replace('.', '')
@@ -182,7 +192,12 @@ def add_to_section(form_update, form_update_ids):
         out_mode_content.append(dbc.Button(selected_text, id = {'section' : mode, 't' : submit_time}))
         out_content = [no_update for section in range(n_sections)]
         out_content[mode_index] = out_mode_content
-    return out_content
+        path = '-'.join(nav_selection + [])
+        out_data = Patch()
+        out_data[path][mode].append(selected_text)
+    else:
+        raise PreventUpdate
+    return out_content, out_data
 
 @callback(
     Output({'form' : MATCH}, 'children', allow_duplicate=True),
@@ -200,7 +215,7 @@ def add_to_section(form_update, form_update_ids):
 def handle_submission(trigger, is_active, buttons, selected_section, mode, submit_time, sections):
     out_buttons = out_content = no_update
     out_active = [no_update for button in buttons]
-    if ctx.triggered_id:
+    if ctx.triggered_id and trigger:
         selected_text = [button for button, i_a in zip(buttons, is_active) if i_a]
         selected_text = ' '.join(selected_text)
         selected_section_index = sections.index({'section_content' : selected_section})
@@ -215,6 +230,7 @@ def handle_submission(trigger, is_active, buttons, selected_section, mode, submi
         raise PreventUpdate
     return out_buttons, out_content, out_active
 
+#'''
 @callback(
     Output('nav_selection', 'data'),
     Input({'section' : ALL, 't' : ALL}, 'n_clicks'),
@@ -233,14 +249,64 @@ def select_concept(n_clicks, button_ids): # TODO combine with display_concept?
 
 @callback(
     Output('concept_section', 'children'),
+    Output('concept_data', 'data', allow_duplicate = True),
+    Output('nav_structure', 'data'),
     Input('nav_selection', 'data'),
+    State('nav_structure', 'data'),
+    State({'section' : ALL, 't' : ALL}, 'children'),
+    prevent_initial_call = True
+)
+def display_concept(selection_path, nav_structure, buttons): # TODO combine with select_concept?
+    out_data = out_structure = no_update
+    
+    path_str = '-'.join(selection_path)
+    concept = nav_structure.get(path_str, None)
+    
+    if concept is None:
+        concept = buttons[int(selection_path[-1])]
+        out_data = Patch()
+        out_data[path_str] = blank_concept()
+        out_structure = Patch()
+        out_structure[path_str] = concept
+    out_concept = concept_section(concept)
+    return out_concept, out_data, out_structure
+#'''
+
+'''
+@callback(
+    Output('nav_selection', 'data'),
+    Output('concept_data', 'data', allow_duplicate = True),
+    Output('concept_section', 'children'),
+    Input({'section' : ALL, 't' : ALL}, 'n_clicks'),
+    State({'section' : ALL, 't' : ALL}, 'id'),
+    State('nav_selection', 'data'),
     State('nav_structure', 'data'),
     prevent_initial_call = True
 )
-def display_concept(selection_path, nav_structure): # TODO combine with select_concept?
-    concept = nav_structure.get('-'.join(selection_path), None)
-    out_concept = concept_section(concept)
-    return out_concept
+def select_concept(n_clicks, button_ids, parent_path, nav_structure): # TODO combine with display_concept?
+    out_selection = out_concept = out_data = no_update
+    trigger = ctx.triggered_id
+    if trigger:
+        concept_index = button_ids.index(trigger)
+        if n_clicks[concept_index]:
+            out_selection = Patch()
+            out_selection.append(str(concept_index))
+            path_str = '-'.join(parent_path + [str(concept_index)])
+            concept = nav_structure.get(path_str, None) 
+    return out_selection, out_concept, out_data
 
+@callback(
+    Input('nav_selection', 'data'),
+    prevent_initial_call = True
+)
+def display_concept(selection_path, ): # TODO combine with select_concept?
+    
+        
+    out_concept = concept_section(concept)
+    out_data = Patch()
+    if concept is None:
+        out_data[path_str] = blank_concept()
+'''
+        
 if __name__ == '__main__':
 	app.run(debug=True)
