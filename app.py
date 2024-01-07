@@ -24,11 +24,21 @@ nav_section = html.Div([
     html.Div(id = 'nav_display')
 ])
     
-def concept_section(concept):
-    def section(label):
+def concept_section(concept, existing_buttons = None):
+    def section(section_type):
+        if existing_buttons:
+            section_text_buttons = [
+                dbc.Button(button_text, id = {'section' : section_type, 't' : t})
+                for t, button_text in enumerate(existing_buttons[section_type])
+            ]
+        else:
+            section_text_buttons = None
         return dbc.Row([
-            dbc.Col(dbc.Button(label, id = {'section_button' : label}), width = 1),
-            dbc.Col(html.Div(id = {'section_content' : label}))
+            dbc.Col(dbc.Button(section_type, id = {'section_button' : section_type}), width = 1),
+            dbc.Col(html.Div(
+                id = {'section_content' : section_type},
+                children = section_text_buttons
+            ))
         ])
     
     return html.Div([
@@ -275,10 +285,11 @@ def select_concept_from_nav(n_clicks, button_ids, existing_selection):
     Output('nav_structure', 'data'),
     Input('nav_selection', 'data'),
     State('nav_structure', 'data'),
+    State('concept_data', 'data'),
     State({'section' : ALL, 't' : ALL}, 'children'),
     prevent_initial_call = True
 )
-def display_concept(selection_path, nav_structure, buttons):
+def display_concept(selection_path, nav_structure, data, buttons):
     out_data = out_structure = no_update
     
     path_str = '-'.join(selection_path)
@@ -291,15 +302,16 @@ def display_concept(selection_path, nav_structure, buttons):
         out_structure = Patch()
         out_structure[path_str] = {'text' : concept_text, 'children' : []}
         out_structure['-'.join(selection_path[:-1])]['children'].append(path_str)
+        out_concept = concept_section(concept_text)
     else:
         concept_text = concept['text']
-    out_concept = concept_section(concept_text)
+        out_concept = concept_section(concept_text, existing_buttons=data[path_str])
     return out_concept, out_data, out_structure
 
 @callback(
     Output('nav_display', 'children'),
     Input('nav_structure', 'data'),
-    State('nav_selection', 'data'),
+    Input('nav_selection', 'data'),
     prevent_initial_call = True
 )
 def display_nav(structure, selected_concept):
