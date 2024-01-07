@@ -26,9 +26,38 @@ def concept_section(concept, existing_buttons = None, selected_tab = 'Labels'):
     ])
 ])
 
+def blank_concept(concept_name = None):
+    return {
+        'Name' : concept_name,
+        'Labels' : [],
+        'Categories' : [],
+        'Properties' : []
+    }
 
-
-
+@callback(
+    Output('nav_selection', 'data', allow_duplicate=True),
+    Output('concept_data', 'data', allow_duplicate = True), # create concept if needed
+    Input({'section' : ALL, 't' : ALL}, 'n_clicks'),
+    State({'section' : ALL, 't' : ALL}, 'id'),
+    State({'section' : ALL, 't' : ALL}, 'children'),
+    State('nav_selection', 'data'),
+    State('concept_data', 'data'),
+    prevent_initial_call = True
+)
+def select_concept_from_button(n_clicks, button_ids, buttons, nav_selection, concept_data):
+    out_selection = out_data = no_update
+    trigger = ctx.triggered_id
+    if trigger:
+        concept_index = button_ids.index(trigger)
+        if n_clicks[concept_index]:
+            path = '-'.join(nav_selection + [str(concept_index)])
+            if path not in concept_data:
+                out_data = Patch()
+                concept = buttons[concept_index]
+                out_data[path] = blank_concept(concept)
+            out_selection = Patch()
+            out_selection.append(str(concept_index))
+    return out_selection, out_data
 
 @callback(
     Output('nav_selection', 'data', allow_duplicate=True),
@@ -66,17 +95,12 @@ def display_concept(selection_path, nav_structure, buttons):
         out_structure = Patch()
         out_structure[path_str] = {'text' : concept_text, 'children' : []}
         out_structure['-'.join(selection_path[:-1])]['children'].append(path_str)
-        # out_concept = concept_section(concept_text)
-    # else:
-    #     concept_text = concept['text']
-        # out_concept = concept_section(concept_text, existing_buttons=data[path_str])
-    # return out_concept, 
     return out_structure
 
 @callback(
     Output('nav_display', 'children'),
     Input('nav_structure', 'data'),
-    Input('nav_selection', 'data'),
+    State('nav_selection', 'data'),
     prevent_initial_call = True
 )
 def display_nav(structure, selected_concept):

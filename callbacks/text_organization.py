@@ -118,38 +118,7 @@ def break_down_sentence(n_clicks, sentence_buttons, sentences):
     return out_buttons
 
 
-def blank_concept(concept_name = None):
-    return {
-        'Name' : concept_name,
-        'Labels' : [],
-        'Categories' : [],
-        'Properties' : []
-    }
 
-@callback(
-    Output('nav_selection', 'data', allow_duplicate=True),
-    Output('concept_data', 'data', allow_duplicate = True), # create concept if needed
-    Input({'section' : ALL, 't' : ALL}, 'n_clicks'),
-    State({'section' : ALL, 't' : ALL}, 'id'),
-    State({'section' : ALL, 't' : ALL}, 'children'),
-    State('nav_selection', 'data'),
-    State('concept_data', 'data'),
-    prevent_initial_call = True
-)
-def select_concept_frm_button(n_clicks, button_ids, buttons, nav_selection, concept_data):
-    out_selection = out_data = no_update
-    trigger = ctx.triggered_id
-    if trigger:
-        concept_index = button_ids.index(trigger)
-        if n_clicks[concept_index]:
-            path = '-'.join(nav_selection + [str(concept_index)])
-            if path not in concept_data:
-                out_data = Patch()
-                concept = buttons[concept_index]
-                out_data[path] = blank_concept(concept)
-            out_selection = Patch()
-            out_selection.append(str(concept_index))
-    return out_selection, out_data
 
 
 @callback(
