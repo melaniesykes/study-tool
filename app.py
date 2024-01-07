@@ -24,10 +24,15 @@ def text_form(form_type):
         id = {'form' : form_type}
     )
 
-
+nav_section = html.Div([
+    dcc.Store(id = 'nav_selection', data = []),
+    dcc.Store(id = 'nav_structure', data = dict()),
+    dcc.Store(id = 'concept_data')
+])
     
-app.layout = html.Div([
-    dcc.Markdown(id = {'index' : 'main_label'}),
+def concept_section(concept):
+    return html.Div([
+    dcc.Markdown(concept, id = {'index' : 'main_label'}),
     dcc.Store(data = 'Labels', id = 'section'),
     section('Labels'),
     section('Categories'),
@@ -45,6 +50,11 @@ app.layout = html.Div([
 	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
     dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
     text_form('sentences')
+])
+
+app.layout = dbc.Row([
+    dbc.Col(nav_section),
+    dbc.Col(concept_section(None), id = 'concept_section')
 ])
 
 def button_section(text, section):
@@ -164,6 +174,7 @@ def activate_text_button(trigger, is_active):
 def add_to_section(form_update, form_update_ids):
     trigger = ctx.triggered_id
     if trigger:
+        print('adding to section')
         update_index = form_update_ids.index(trigger)
         [mode, mode_index, selected_text, submit_time, n_sections] = form_update[update_index]
         selected_text = selected_text.replace(',', '').replace('.', '')
@@ -204,6 +215,32 @@ def handle_submission(trigger, is_active, buttons, selected_section, mode, submi
         raise PreventUpdate
     return out_buttons, out_content, out_active
 
+@callback(
+    Output('nav_selection', 'data'),
+    Input({'section' : ALL, 't' : ALL}, 'n_clicks'),
+    State({'section' : ALL, 't' : ALL}, 'id'),
+    prevent_initial_call = True
+)
+def select_concept(n_clicks, button_ids): # TODO combine with display_concept?
+    out_selection = no_update
+    trigger = ctx.triggered_id
+    if trigger:
+        concept_index = button_ids.index(trigger)
+        if n_clicks[concept_index]:
+            out_selection = Patch()
+            out_selection.append(str(concept_index))
+    return out_selection
+
+@callback(
+    Output('concept_section', 'children'),
+    Input('nav_selection', 'data'),
+    State('nav_structure', 'data'),
+    prevent_initial_call = True
+)
+def display_concept(selection_path, nav_structure): # TODO combine with select_concept?
+    concept = nav_structure.get('-'.join(selection_path), None)
+    out_concept = concept_section(concept)
+    return out_concept
 
 if __name__ == '__main__':
 	app.run(debug=True)
