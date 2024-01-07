@@ -5,15 +5,13 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 
 
-# https://github.com/plotly/dash/releases
-
 load_dotenv()
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP]) 
 
-def blank_concept():
+def blank_concept(concept_name = None):
     return {
-        'Name' : [],
+        'Name' : concept_name,
         'Labels' : [],
         'Categories' : [],
         'Properties' : []
@@ -21,8 +19,9 @@ def blank_concept():
 
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection', data = []),
-    dcc.Store(id = 'nav_structure', data = dict()),
-    dcc.Store(id = 'concept_data', data = blank_concept())
+    dcc.Store(id = 'nav_structure', data = {'' : {'children' : []}}),
+    dcc.Store(id = 'concept_data', data = {'' : blank_concept()}),
+    html.Div(id = 'nav_display')
 ])
     
 def concept_section(concept):
@@ -31,38 +30,41 @@ def concept_section(concept):
             dbc.Col(dbc.Button(label, id = {'section_button' : label}), width = 1),
             dbc.Col(html.Div(id = {'section_content' : label}))
         ])
-
-    def text_form(form_type):
-        return dbc.Form(
-            dcc.Input(id = {'input' : 'input', 'form' : form_type}),
-            id = {'form' : form_type}
-        )
+    
     return html.Div([
-    dcc.Markdown(concept, id = {'index' : 'main_label'}),
+    dcc.Markdown(f'## __{concept}__' if concept else None, id = {'index' : 'main_label'}),
     dcc.Store(data = 'Labels', id = 'section'),
     section('Labels'),
     section('Categories'),
     section('Properties'),
-    html.Br(),
-    dcc.Markdown('Mode'),
-    dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move', id = 'mode'),
-    html.Br(),
-	dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
-	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'words'}),
-    
-	text_form('words'),
-    html.Br(),
-	dbc.Button('Sentences', id = {'format_button' : 'button', 'form' : 'sentences'}),
-	dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
-    text_form('sentences')
 ])
 
+def text_form(form_type):
+    return dbc.Form(
+        dcc.Input(id = {'input' : 'input', 'form' : form_type}),
+        id = {'form' : form_type}
+    )
+    
 app.layout = dbc.Row([
     dbc.Col(nav_section),
     dbc.Col([
         html.Div(concept_section(None), id = 'concept_section'),
+
+        html.Br(),
+        dcc.Markdown('Mode'),
+        dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move', id = 'mode'),
+
+        html.Br(),
+        dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
+        dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'words'}),
         dcc.Store({'form' : 'words', 'form_dummy' : 'form_dummy'}),
+        text_form('words'),
+
+        html.Br(),
+        dbc.Button('Sentences', id = {'format_button' : 'button', 'form' : 'sentences'}),
+        dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
         dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
+        text_form('sentences')
     ])
 ])
 
@@ -230,21 +232,41 @@ def handle_submission(trigger, is_active, buttons, selected_section, mode, submi
         raise PreventUpdate
     return out_buttons, out_content, out_active
 
-#'''
+
 @callback(
-    Output('nav_selection', 'data'),
+    Output('nav_selection', 'data', allow_duplicate=True),
     Input({'section' : ALL, 't' : ALL}, 'n_clicks'),
     State({'section' : ALL, 't' : ALL}, 'id'),
     prevent_initial_call = True
 )
-def select_concept(n_clicks, button_ids): # TODO combine with display_concept?
+def select_concept_from_button(n_clicks, button_ids):
     out_selection = no_update
     trigger = ctx.triggered_id
     if trigger:
         concept_index = button_ids.index(trigger)
         if n_clicks[concept_index]:
+            # print(trigger, n_clicks)
             out_selection = Patch()
             out_selection.append(str(concept_index))
+    return out_selection
+
+@callback(
+    Output('nav_selection', 'data', allow_duplicate=True),
+    Input({'path' : ALL, 'nav' : ALL}, 'n_clicks'),
+    State({'path' : ALL, 'nav' : ALL}, 'id'),
+    State('nav_selection', 'data'),
+    prevent_initial_call = True
+)
+def select_concept_from_nav(n_clicks, button_ids, existing_selection):
+    out_selection = no_update
+    trigger = ctx.triggered_id
+    if trigger:
+        concept_index = button_ids.index(trigger)
+        if n_clicks[concept_index]:
+            # print(trigger, n_clicks)
+            selection = trigger['path'].split('-')
+            if selection != existing_selection:
+                out_selection = selection
     return out_selection
 
 @callback(
@@ -256,57 +278,43 @@ def select_concept(n_clicks, button_ids): # TODO combine with display_concept?
     State({'section' : ALL, 't' : ALL}, 'children'),
     prevent_initial_call = True
 )
-def display_concept(selection_path, nav_structure, buttons): # TODO combine with select_concept?
+def display_concept(selection_path, nav_structure, buttons):
     out_data = out_structure = no_update
     
     path_str = '-'.join(selection_path)
     concept = nav_structure.get(path_str, None)
     
     if concept is None:
-        concept = buttons[int(selection_path[-1])]
+        concept_text = buttons[int(selection_path[-1])]
         out_data = Patch()
-        out_data[path_str] = blank_concept()
+        out_data[path_str] = blank_concept(concept_text)
         out_structure = Patch()
-        out_structure[path_str] = concept
-    out_concept = concept_section(concept)
+        out_structure[path_str] = {'text' : concept_text, 'children' : []}
+        out_structure['-'.join(selection_path[:-1])]['children'].append(path_str)
+    else:
+        concept_text = concept['text']
+    out_concept = concept_section(concept_text)
     return out_concept, out_data, out_structure
-#'''
 
-'''
 @callback(
-    Output('nav_selection', 'data'),
-    Output('concept_data', 'data', allow_duplicate = True),
-    Output('concept_section', 'children'),
-    Input({'section' : ALL, 't' : ALL}, 'n_clicks'),
-    State({'section' : ALL, 't' : ALL}, 'id'),
+    Output('nav_display', 'children'),
+    Input('nav_structure', 'data'),
     State('nav_selection', 'data'),
-    State('nav_structure', 'data'),
     prevent_initial_call = True
 )
-def select_concept(n_clicks, button_ids, parent_path, nav_structure): # TODO combine with display_concept?
-    out_selection = out_concept = out_data = no_update
-    trigger = ctx.triggered_id
-    if trigger:
-        concept_index = button_ids.index(trigger)
-        if n_clicks[concept_index]:
-            out_selection = Patch()
-            out_selection.append(str(concept_index))
-            path_str = '-'.join(parent_path + [str(concept_index)])
-            concept = nav_structure.get(path_str, None) 
-    return out_selection, out_concept, out_data
-
-@callback(
-    Input('nav_selection', 'data'),
-    prevent_initial_call = True
-)
-def display_concept(selection_path, ): # TODO combine with select_concept?
-    
-        
-    out_concept = concept_section(concept)
-    out_data = Patch()
-    if concept is None:
-        out_data[path_str] = blank_concept()
-'''
+def display_nav(structure, selected_concept):
+    print('structure', structure)
+    parent_path = '-'.join(selected_concept[:-1])
+    parent_text = structure[parent_path].get('text', '')
+    sibling_ids = structure[parent_path]['children']
+    out_children = [html.H3(parent_text, id = {'path' : parent_path, 'nav' : 'parent'})]
+    for sibling_path in sibling_ids:
+        sibling = html.H4(structure[sibling_path]['text'], id = {'path' : sibling_path, 'nav' : 'sibling'})
+        out_children.append(sibling)
+        for child_path in structure[sibling_path]['children']:
+            child = html.H5(structure[child_path]['text'], id = {'path' : child_path, 'nav' : 'child'})
+            out_children.append(child)
+    return out_children
         
 if __name__ == '__main__':
 	app.run(debug=True)
