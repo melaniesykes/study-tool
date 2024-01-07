@@ -1,4 +1,4 @@
-import dash     # need Dash version 2.9.0 or higher
+import dash # need Dash version 2.9.0 or higher
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 from callbacks import *
@@ -16,8 +16,6 @@ nav_section = html.Div([
 
 def text_form(form_type):
     return dbc.Form(
-        # dcc.Textarea(id = {'input' : 'input', 'form' : form_type}, contentEditable = 'true'),
-        # dcc.Textarea(id = {'input' : 'input', 'form' : form_type}),
         dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True),
         id = {'form' : form_type}
     )

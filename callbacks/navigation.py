@@ -47,7 +47,6 @@ def select_concept_from_button(n_clicks, button_ids):
     if trigger:
         concept_index = button_ids.index(trigger)
         if n_clicks[concept_index]:
-            # print(trigger, n_clicks)
             out_selection = Patch()
             out_selection.append(str(concept_index))
     return out_selection
@@ -65,7 +64,6 @@ def select_concept_from_nav(n_clicks, button_ids, existing_selection):
     if trigger:
         concept_index = button_ids.index(trigger)
         if n_clicks[concept_index]:
-            # print(trigger, n_clicks)
             selection = trigger['path'].split('-')
             if selection != existing_selection:
                 out_selection = selection
@@ -107,7 +105,6 @@ def display_concept(selection_path, nav_structure, data, buttons):
     prevent_initial_call = True
 )
 def display_nav(structure, selected_concept):
-    print('structure', structure)
     parent_path = '-'.join(selected_concept[:-1])
     parent_text = structure[parent_path].get('text', '')
     sibling_ids = structure[parent_path]['children']
