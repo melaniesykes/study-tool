@@ -1,9 +1,9 @@
 import dash     # need Dash version 2.9.0 or higher
-from dash import dcc, html, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update
-from dotenv import load_dotenv
+from dash import dcc, html
 import dash_bootstrap_components as dbc
-from dash.exceptions import PreventUpdate
 from callbacks import *
+import dash_mantine_components as dmc
+
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP]) 
 
@@ -13,11 +13,12 @@ nav_section = html.Div([
     dcc.Store(id = 'concept_data', data = {'' : blank_concept()}),
     html.Div(id = 'nav_display')
 ])
-    
 
 def text_form(form_type):
     return dbc.Form(
-        dcc.Input(id = {'input' : 'input', 'form' : form_type}),
+        # dcc.Textarea(id = {'input' : 'input', 'form' : form_type}, contentEditable = 'true'),
+        # dcc.Textarea(id = {'input' : 'input', 'form' : form_type}),
+        dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True),
         id = {'form' : form_type}
     )
     

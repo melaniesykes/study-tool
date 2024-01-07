@@ -1,5 +1,7 @@
 from dash import dcc, html, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update
 import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
+
 from dash.exceptions import PreventUpdate
 
 def button_section(text, section):
@@ -74,13 +76,24 @@ def switch_form_format(trigger, button_text, input_text):
 
     if button_text and (button == 'text'):
         text = ' '.join(button_text)
-        out_buttons = dcc.Input(text, id = {'input' : 'input', 'form' : form})
+        # out_buttons = dcc.Textarea(text, id = {'input' : 'input', 'form' : form}, contentEditable = 'true')
+        # out_buttons = dcc.Textarea(id = {'input' : 'input', 'form' : form}, value = text)
+        out_buttons = dmc.Textarea(id = {'input' : 'input', 'form' : form}, value = text, autosize = True)
     elif input_text and (button == 'button'):
         text = input_text[0]    
         if text:
             out_buttons = button_section(text, form)
 
     return out_buttons
+
+# @callback(
+#     Output({'form' : MATCH, 'input' : ALL}, 'id'),
+#     Input({'form' : MATCH, 'input' : ALL}, 'prop_name'),
+#     prevent_initial_call = True
+# )
+# def test_input_attrs(trigger):
+#     print('test:', trigger)
+#     raise PreventUpdate
 
 @callback(
     Output({'form' : MATCH, 'text_button' : MATCH}, 'active', allow_duplicate=True),
