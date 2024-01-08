@@ -40,7 +40,7 @@ app.layout = dbc.Row([
         
         html.Br(),
         dcc.Markdown('Mode'),
-        dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move', id = 'mode'),
+        dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode'),
 
         html.Br(),
         dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
