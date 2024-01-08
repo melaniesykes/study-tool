@@ -9,10 +9,23 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection', data = []),
-    dcc.Store(id = 'nav_structure', data = {'' : blank_nav_structure()}),
     dcc.Store(id = 'concept_data', data = {'' : blank_concept()}),
     html.Div(id = 'nav_display')
 ])
+
+concept_section = html.Div([
+    dcc.Markdown(id = 'selected_concept_label'),
+    dbc.Card([
+        dbc.CardHeader(
+            dbc.Tabs([
+                dbc.Tab(label = 'Labels', tab_id = 'Labels'),
+                dbc.Tab(label = 'Categories', tab_id = 'Categories'),
+                dbc.Tab(label = 'Properties', tab_id = 'Properties'),
+            ], id = 'section_tabs')
+        ),
+        dbc.CardBody(id = 'section_content')
+    ])
+], id = 'concept_section')
 
 def text_form(form_type):
     return dbc.Form(
@@ -23,8 +36,8 @@ def text_form(form_type):
 app.layout = dbc.Row([
     dbc.Col(nav_section),
     dbc.Col([
-        html.Div(concept_section(None), id = 'concept_section'),
-
+        concept_section,
+        
         html.Br(),
         dcc.Markdown('Mode'),
         dbc.RadioItems(options = ['move', 'add', 'delete'], value = 'move', id = 'mode'),

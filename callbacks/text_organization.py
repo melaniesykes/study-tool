@@ -37,26 +37,23 @@ def button_section(text, section):
 @callback(
     Output({'form' : ALL, 'text_button' : ALL}, 'color'),
     Output({'form' : ALL, 'text_button' : ALL}, 'disabled'),
-    Output('section_content', 'children', allow_duplicate = True),
-    Input('nav_structure', 'data'),
+    Output('section_content', 'children'),
+    Input('concept_data', 'data'),
+    Input('nav_selection', 'data'),
     Input('section_tabs', 'active_tab'),
     State({'form' : ALL, 'text_button' : ALL}, 'children'),
-    State('concept_data', 'data'),
     State('nav_selection', 'data'),
     prevent_initial_call = True
 )
-def select_section(nav_structure, selected_tab, text_buttons, concept_data, nav_selection):
-    print('data', concept_data)
-    print('nav_structre', nav_structure)
+def update_section(concept_data, selected_concept, selected_tab, text_buttons, nav_selection):
     if ctx.triggered_id:
         out_color = []
         out_disabled = []
         path = '-'.join(nav_selection)
         buttons = concept_data[path][selected_tab]
-        button_ids = nav_structure[path][selected_tab]
         out_content = [
             dbc.Button(button_text, id = {'potential_concept' : button_id})
-            for button_id, button_text in zip(button_ids, buttons)
+            for button_id, button_text in buttons.items()
         ]
 
         for button in text_buttons:
@@ -120,12 +117,7 @@ def break_down_sentence(n_clicks, sentence_buttons, sentences):
         out_buttons = button_section(sentence, 'words')
     return out_buttons
 
-
-
-
-
 @callback(
-    Output('section_content', 'children', allow_duplicate = True),
     Output('concept_data', 'data', allow_duplicate = True),
     Input({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'data'),
     State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
@@ -137,20 +129,16 @@ def add_to_section(form_update, form_update_ids, nav_selection, concept_data):
     trigger = ctx.triggered_id
     if trigger:
         update_index = form_update_ids.index(trigger)
-        [mode, selected_text] = form_update[update_index]
+        [selected_section, selected_text] = form_update[update_index]
         selected_text = selected_text.replace(',', '').replace('.', '')
         path = '-'.join(nav_selection)
         out_data = Patch()
-        out_data[path][mode].append(selected_text)
         new_id = '-'.join(nav_selection + [str(concept_data[path]['max_id'])])
+        out_data[path][selected_section][new_id] = selected_text
         out_data[path]['max_id'] += 1
-        out_mode_content = Patch()
-        out_mode_content.append(dbc.Button(selected_text, id = {'potential_concept' : new_id}))
-        out_content = out_mode_content
-        
     else:
         raise PreventUpdate
-    return out_content, out_data
+    return out_data
 
 @callback(
     Output({'form' : MATCH}, 'children', allow_duplicate=True),
