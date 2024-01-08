@@ -43,13 +43,14 @@ app.layout = dbc.Row([
         dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode'),
 
         html.Br(),
-        dbc.Button('Words', id ={'format_button' : 'button', 'form' : 'words'}),
-        dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'words'}),
-        dcc.Store({'form' : 'words', 'form_dummy' : 'form_dummy'}),
-        text_form('words'),
+        dbc.Button('Words', id ={'format_button' : 'words', 'form' : 'recent_sentence'}),
+        dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'recent_sentence'}),
+        dcc.Store({'form' : 'recent_sentence', 'form_dummy' : 'form_dummy'}),
+        text_form('recent_sentence'),
 
         html.Br(),
-        dbc.Button('Sentences', id = {'format_button' : 'button', 'form' : 'sentences'}),
+        dbc.Button('Words', id ={'format_button' : 'words', 'form' : 'sentences'}),
+        dbc.Button('Sentences', id = {'format_button' : 'sentences', 'form' : 'sentences'}),
         dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
         dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
         text_form('sentences')

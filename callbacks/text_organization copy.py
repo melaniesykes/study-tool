@@ -4,8 +4,8 @@ import dash_mantine_components as dmc
 
 from dash.exceptions import PreventUpdate
 
-def button_section(text, section, split_type):
-    if split_type == 'words':
+def button_section(text, section):
+    if section == 'words':
         delimiter = ' '
         suffix = ''
     else:
@@ -35,43 +35,37 @@ def button_section(text, section, split_type):
     return section_content
 
 @callback(
+    Output({'form' : ALL, 'text_button' : ALL}, 'color'),
+    Output({'form' : ALL, 'text_button' : ALL}, 'disabled'),
     Output('section_content', 'children'),
     Input('concept_data', 'data'),
     Input('nav_selection', 'data'),
     Input('section_tabs', 'active_tab'),
+    State({'form' : ALL, 'text_button' : ALL}, 'children'),
     State('nav_selection', 'data'),
     prevent_initial_call = True
 )
-def update_section(concept_data, selected_concept, selected_tab, nav_selection):
+def update_section(concept_data, selected_concept, selected_tab, text_buttons, nav_selection):
     if ctx.triggered_id:
+        out_color = []
+        out_disabled = []
         path = '-'.join(nav_selection)
         buttons = concept_data[path][selected_tab]
         out_content = [
             dbc.Button(button_text, id = {'potential_concept' : button_id})
             for button_id, button_text in buttons.items()
         ]
+
+        for button in text_buttons:
+            if (button in buttons):
+                out_color.append('success')
+                out_disabled.append(True)
+            else:
+                out_color.append('primary')
+                out_disabled.append(False)
     else:
         raise PreventUpdate
-    return out_content
-
-
-
-
-@callback(
-    Output({'form' : 'recent_sentence'}, 'children', allow_duplicate=True),
-    Input({'form' : 'sentences', 'text_button' : ALL}, 'n_clicks'),
-    State({'form' : 'sentences', 'text_button' : ALL}, 'id'),
-    State({'form' : 'sentences', 'text_button' : ALL}, 'children'),
-    prevent_initial_call = True
-)
-def break_down_sentence(n_clicks, sentence_buttons, sentences):
-    out_buttons = no_update
-    trigger = ctx.triggered_id
-    if trigger:
-        trigger_index = sentence_buttons.index(trigger)
-        sentence = sentences[trigger_index]
-        out_buttons = button_section(sentence, 'recent_sentence', 'words')
-    return out_buttons
+    return out_color, out_disabled, out_content
 
 @callback(
     Output({'form' : MATCH}, 'children', allow_duplicate=True),
@@ -84,26 +78,16 @@ def switch_form_format(trigger, button_text, input_text):
     out_buttons = no_update
     button = ctx.triggered_id.get('format_button', None)
     form = ctx.triggered_id.get('form', None)
-    
-    text = None
-    if button_text:
-        text = ' '.join(button_text)
-    elif input_text:
-        text = input_text[0]
 
-    if (button == 'text'):
+    if button_text and (button == 'text'):
+        text = ' '.join(button_text)
         out_buttons = dmc.Textarea(id = {'input' : 'input', 'form' : form}, value = text, autosize = True)
-    elif button in ('words', 'sentences'):
+    elif input_text and (button == 'button'):
+        text = input_text[0]    
         if text:
-            out_buttons = button_section(text, form, button)
+            out_buttons = button_section(text, form)
 
     return out_buttons
-
-
-
-
-
-
 
 @callback(
     Output({'form' : MATCH, 'text_button' : MATCH}, 'active', allow_duplicate=True),
@@ -116,6 +100,22 @@ def activate_text_button(trigger, is_active):
     if ctx.triggered:
         out_active = not is_active
     return out_active
+
+@callback(
+    Output({'form' : 'words'}, 'children', allow_duplicate=True),
+    Input({'form' : 'sentences', 'text_button' : ALL}, 'n_clicks'),
+    State({'form' : 'sentences', 'text_button' : ALL}, 'id'),
+    State({'form' : 'sentences', 'text_button' : ALL}, 'children'),
+    prevent_initial_call = True
+)
+def break_down_sentence(n_clicks, sentence_buttons, sentences):
+    out_buttons = no_update
+    trigger = ctx.triggered_id
+    if trigger:
+        trigger_index = sentence_buttons.index(trigger)
+        sentence = sentences[trigger_index]
+        out_buttons = button_section(sentence, 'words')
+    return out_buttons
 
 @callback(
     Output('concept_data', 'data', allow_duplicate = True),
@@ -163,7 +163,7 @@ def handle_submission(trigger, is_active, buttons, selected_section, mode):
             out_content = [selected_section, selected_text]
         if mode in ('delete', 'move'):
             non_selected_text = [button for button, i_a in zip(buttons, is_active) if not i_a]
-            out_buttons = button_section(non_selected_text, ctx.triggered_id['form'], 'words')
+            out_buttons = button_section(non_selected_text, ctx.triggered_id['form'])
     else:
         raise PreventUpdate
     return out_buttons, out_content, out_active
