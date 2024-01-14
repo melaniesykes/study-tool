@@ -118,20 +118,20 @@ def activate_text_button(n_clicks, last_clicked, is_active, buttons, selected_se
         out_active = [no_update for button in ctx.outputs_list[2]]
         if last_clicked:
             out_last_clicked = None
-            if is_active[clicked_button]:
-                out_active[clicked_button] = False
-            else:
-                start = last_clicked
-                end = clicked_button
+            # if is_active[clicked_button]:
+            #     out_active[clicked_button] = False
+            # else:
+            start = last_clicked
+            end = clicked_button
 
-                selected_text = ' '.join(buttons[start: end + 1])
-                if mode == 'add':
-                    out_active = [False for button in is_active]
-                if mode in ('add', 'move'):
-                    out_content = [selected_section, selected_text]
-                if mode in ('delete', 'move'):
-                    non_selected_text = buttons[:start] + buttons[end + 1:]
-                    out_buttons = button_section(non_selected_text, ctx.triggered_id['form'], 'words')
+            selected_text = ' '.join(buttons[start: end + 1])
+            if mode == 'add':
+                out_active = [False for button in is_active]
+            if mode in ('add', 'move'):
+                out_content = [selected_section, selected_text]
+            if mode in ('delete', 'move'):
+                non_selected_text = buttons[:start] + buttons[end + 1:]
+                out_buttons = button_section(non_selected_text, ctx.triggered_id['form'], 'words')
 
         else:
             out_last_clicked = clicked_button
