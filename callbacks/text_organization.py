@@ -1,4 +1,4 @@
-from dash import dcc, html, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update
+from dash import dcc, clientside_callback, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 
@@ -25,11 +25,8 @@ def button_section(text, section, split_type):
                 )
             )
     section_content.append(
-        dbc.Button(
-            id = {'form' : section, 'submit_button' : n},
-            children = 'SUBMIT', 
-            color = 'secondary',
-            type = 'submit'
+        dcc.Store(
+            id = {'form' : section, 'store' : 'last_clicked'},
         )
     )
     return section_content
@@ -75,15 +72,15 @@ def break_down_sentence(n_clicks, sentence_buttons, sentences):
 
 @callback(
     Output({'form' : MATCH}, 'children', allow_duplicate=True),
-    Input({'form' : MATCH, 'format_button' : ALL}, 'n_clicks'),
+    Input({'form' : MATCH, 'component' : 'input_tabs'} , 'active_tab'),
     State({'form' : MATCH, 'text_button' : ALL}, 'children'),
 	State({'form' : MATCH, 'input' : ALL}, 'value'),
     prevent_initial_call = True
 )
 def switch_form_format(trigger, button_text, input_text):
     out_buttons = no_update
-    button = ctx.triggered_id.get('format_button', None)
     form = ctx.triggered_id.get('form', None)
+    active_tab = trigger.get('format_button')
     
     text = None
     if button_text:
@@ -91,31 +88,59 @@ def switch_form_format(trigger, button_text, input_text):
     elif input_text:
         text = input_text[0]
 
-    if (button == 'text'):
+    if (active_tab == 'text'):
         out_buttons = dmc.Textarea(id = {'input' : 'input', 'form' : form}, value = text, autosize = True)
-    elif button in ('words', 'sentences'):
+    elif active_tab in ('words', 'sentences'):
         if text:
-            out_buttons = button_section(text, form, button)
+            out_buttons = button_section(text, form, active_tab)
 
     return out_buttons
 
-
-
-
-
-
-
 @callback(
-    Output({'form' : MATCH, 'text_button' : MATCH}, 'active', allow_duplicate=True),
-    Input({'form' : MATCH, 'text_button' : MATCH}, 'n_clicks'),
-    State({'form' : MATCH, 'text_button' : MATCH}, 'active'),
+    Output({'form' : MATCH}, 'children', allow_duplicate=True),
+    Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
+    Output({'form' : MATCH, 'text_button' : ALL}, 'active'),
+    Output({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
+    Input({'form' : MATCH, 'text_button' : ALL}, 'n_clicks'),
+    State({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
+    State({'form' : MATCH, 'text_button' : ALL}, 'active'),
+    State({'form' : MATCH, 'text_button' : ALL}, 'children'),
+    State('section_tabs', 'active_tab'),
+    State('mode', 'value'),
     prevent_initial_call = True
 )
-def activate_text_button(trigger, is_active):
-    out_active = no_update
-    if ctx.triggered:
-        out_active = not is_active
-    return out_active
+def activate_text_button(n_clicks, last_clicked, is_active, buttons, selected_section, mode):
+    out_buttons = out_content = out_last_clicked = no_update
+    trigger = ctx.triggered_id
+    clicked_button = trigger['text_button']
+
+    if trigger and n_clicks[clicked_button]:
+        out_active = [no_update for button in ctx.outputs_list[2]]
+        if last_clicked:
+            out_last_clicked = None
+            if is_active[clicked_button]:
+                out_active[clicked_button] = False
+            else:
+                start = last_clicked
+                end = clicked_button
+
+                selected_text = ' '.join(buttons[start: end + 1])
+                if mode == 'add':
+                    out_active = [False for button in is_active]
+                if mode in ('add', 'move'):
+                    out_content = [selected_section, selected_text]
+                if mode in ('delete', 'move'):
+                    non_selected_text = buttons[:start] + buttons[end + 1:]
+                    out_buttons = button_section(non_selected_text, ctx.triggered_id['form'], 'words')
+
+        else:
+            out_last_clicked = clicked_button
+            out_active[out_last_clicked] = True
+    else:
+        raise PreventUpdate
+
+    return out_buttons, out_content, out_active, out_last_clicked 
+
 
 @callback(
     Output('concept_data', 'data', allow_duplicate = True),
@@ -140,30 +165,4 @@ def add_to_section(form_update, form_update_ids, nav_selection, concept_data):
         raise PreventUpdate
     return out_data
 
-@callback(
-    Output({'form' : MATCH}, 'children', allow_duplicate=True),
-    Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
-    Output({'form' : MATCH, 'text_button' : ALL}, 'active', allow_duplicate=True),
-    Input({'form' : MATCH}, 'n_submit'),
-    State({'form' : MATCH, 'text_button' : ALL}, 'active'),
-    State({'form' : MATCH, 'text_button' : ALL}, 'children'),
-    State('section_tabs', 'active_tab'),
-    State('mode', 'value'),
-    prevent_initial_call = True
-)
-def handle_submission(trigger, is_active, buttons, selected_section, mode):
-    out_buttons = out_content = no_update
-    out_active = [no_update for button in buttons]
-    if ctx.triggered_id and trigger:
-        selected_text = [button for button, i_a in zip(buttons, is_active) if i_a]
-        selected_text = ' '.join(selected_text)
-        if mode == 'add':
-            out_active = [False for button in is_active]
-        if mode in ('add', 'move'):
-            out_content = [selected_section, selected_text]
-        if mode in ('delete', 'move'):
-            non_selected_text = [button for button, i_a in zip(buttons, is_active) if not i_a]
-            out_buttons = button_section(non_selected_text, ctx.triggered_id['form'], 'words')
-    else:
-        raise PreventUpdate
-    return out_buttons, out_content, out_active
+

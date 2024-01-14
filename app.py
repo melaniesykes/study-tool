@@ -7,6 +7,9 @@ import dash_mantine_components as dmc
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP]) 
 
+with open('test_text.txt') as f:
+      test_text = f.read()
+
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection', data = []),
     dcc.Store(id = 'concept_data', data = {'' : blank_concept()}),
@@ -29,7 +32,7 @@ concept_section = html.Div([
 
 def text_form(form_type):
     return dbc.Form(
-        dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True),
+        dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = test_text),
         id = {'form' : form_type}
     )
     
@@ -43,17 +46,40 @@ app.layout = dbc.Row([
         dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode'),
 
         html.Br(),
-        dbc.Button('Words', id ={'format_button' : 'words', 'form' : 'recent_sentence'}),
-        dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'recent_sentence'}),
-        dcc.Store({'form' : 'recent_sentence', 'form_dummy' : 'form_dummy'}),
-        text_form('recent_sentence'),
+        dbc.Card([
+            dbc.CardHeader(
+                dbc.Tabs(
+                    children = [
+                        dbc.Tab(label = 'Words', tab_id = {'format_button' : 'words', 'form' : 'recent_sentence'}),
+                        dbc.Tab(label = 'Text', tab_id = {'format_button' : 'text', 'form' : 'recent_sentence'}),
+                    ],
+                    id = {'form' : 'recent_sentence', 'component' : 'input_tabs'} 
+                )
+            ),
+            dbc.CardBody([
+                dcc.Store({'form' : 'recent_sentence', 'form_dummy' : 'form_dummy'}),
+                text_form('recent_sentence')
+            ])
+        ]),
 
         html.Br(),
-        dbc.Button('Words', id ={'format_button' : 'words', 'form' : 'sentences'}),
-        dbc.Button('Sentences', id = {'format_button' : 'sentences', 'form' : 'sentences'}),
-        dbc.Button('Text', id = {'format_button' : 'text', 'form' : 'sentences'}),
-        dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
-        text_form('sentences')
+        dbc.Card([
+            dbc.CardHeader(
+                dbc.Tabs(
+                    children = [
+                        dbc.Tab(label = 'Words', tab_id = {'format_button' : 'words', 'form' : 'sentences'}),
+                        dbc.Tab(label = 'Sentences', tab_id = {'format_button' : 'sentences', 'form' : 'sentences'}),
+                        dbc.Tab(label = 'Text', tab_id = {'format_button' : 'text', 'form' : 'sentences'})
+                    ], 
+                    id = {'form' : 'sentences', 'component' : 'input_tabs'},
+                    active_tab = {'format_button' : 'text', 'form' : 'sentences'}
+                )
+            ),
+            dbc.CardBody([
+                dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
+                text_form('sentences')
+            ])
+        ])
     ])
 ])
 
