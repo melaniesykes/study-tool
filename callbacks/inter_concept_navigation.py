@@ -7,7 +7,8 @@ def blank_concept(concept_name = None):
         'text' : concept_name,
         'children' : dict(),
         'Labels' : dict(),
-        'Categories' : dict(),
+        'Supersets' : dict(),
+        'Subsets' : dict(),
         'Properties' : dict(),
         'max_id' : 0
     }
