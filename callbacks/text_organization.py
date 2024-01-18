@@ -1,6 +1,7 @@
 from dash import dcc, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
+import uuid
 
 from dash.exceptions import PreventUpdate
 
@@ -80,6 +81,7 @@ def switch_form_format(trigger, button_text, input_text):
     Output({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'active'),
     Output({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
     Input({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'n_clicks'),
+    Input({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'id'),
     State({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
     State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'active'),
     State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'children'),
@@ -88,12 +90,12 @@ def switch_form_format(trigger, button_text, input_text):
     State({'category_tabs' : ALL}, 'active_tab'),
     prevent_initial_call = True
 )
-def display_submission(n_clicks, last_clicked, is_active, buttons, selected_section, mode, category_tab):
+def display_submission(n_clicks, button_ids, last_clicked, is_active, buttons, selected_section, mode, category_tab):
     out_buttons = out_content = out_last_clicked = no_update
     trigger = ctx.triggered_id
-    clicked_button = trigger['text_button']
+    button_number = trigger['text_button']
 
-    if trigger and n_clicks[clicked_button]:
+    if trigger and n_clicks[button_number]:
         if (selected_section == 'Categories') and category_tab:
             selected_section = category_tab[0]
         
@@ -104,7 +106,7 @@ def display_submission(n_clicks, last_clicked, is_active, buttons, selected_sect
             #     out_active[clicked_button] = False
             # else:
             start = last_clicked
-            end = clicked_button
+            end = button_number
 
             selected_text = ' '.join(buttons[start: end + 1])
             if mode == 'add':
@@ -116,7 +118,7 @@ def display_submission(n_clicks, last_clicked, is_active, buttons, selected_sect
                 out_buttons = button_section(non_selected_text, ctx.triggered_id['form'], 'words')
 
         else:
-            out_last_clicked = clicked_button
+            out_last_clicked = button_number
             out_active[out_last_clicked] = True
     else:
         raise PreventUpdate
@@ -133,16 +135,16 @@ def display_submission(n_clicks, last_clicked, is_active, buttons, selected_sect
     prevent_initial_call = True
 )
 def save_submission(form_update, form_update_ids, nav_selection, concept_data):
+    """Add more info - a potential new concept - to an existing concept."""
     trigger = ctx.triggered_id
     if trigger:
         update_index = form_update_ids.index(trigger)
         [selected_section, selected_text] = form_update[update_index]
         selected_text = selected_text.replace(',', '').replace('.', '')
-        path = '-'.join(nav_selection)
         out_data = Patch()
-        new_id = '-'.join(nav_selection + [str(concept_data[path]['max_id'])])
-        out_data[path][selected_section][new_id] = selected_text
-        out_data[path]['max_id'] += 1
+        potential_concept_id = str(uuid.uuid4())
+        out_data[nav_selection][selected_section][potential_concept_id] = selected_text
+        concept_data[nav_selection][selected_section][potential_concept_id] = selected_text
     else:
         raise PreventUpdate
     return out_data

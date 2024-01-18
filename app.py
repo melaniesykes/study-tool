@@ -11,8 +11,8 @@ with open('test_text.txt') as f:
       test_text = f.read()
 
 nav_section = html.Div([
-    dcc.Store(id = 'nav_selection', data = []),
-    dcc.Store(id = 'concept_data', data = {'' : blank_concept()}),
+    dcc.Store(id = 'nav_selection', data = ''),
+    dcc.Store(id = 'concept_data', data = {'' : blank_concept('', '', '')}),
     html.Div(id = 'nav_display')
 ])
 
