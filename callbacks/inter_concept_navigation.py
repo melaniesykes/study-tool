@@ -16,25 +16,26 @@ def blank_concept(concept_name = None):
 @callback(
     Output('nav_selection', 'data', allow_duplicate=True),
     Output('concept_data', 'data', allow_duplicate = True), # create concept if needed
-    Input({'potential_concept' : ALL}, 'n_clicks'),
-    State({'potential_concept' : ALL}, 'id'),
-    State({'potential_concept' : ALL}, 'children'),
+    Input({'potential_concept' : ALL, 'section' : ALL}, 'n_clicks'),
+    State({'potential_concept' : ALL, 'section' : ALL}, 'id'),
+    State({'potential_concept' : ALL, 'section' : ALL}, 'children'),
     State('concept_data', 'data'),
-    State('section_tabs', 'active_tab'),
     prevent_initial_call = True
 )
-def select_concept_from_button(n_clicks, button_ids, buttons, concept_data, active_tab):
+def select_concept_from_button(n_clicks, button_ids, buttons, concept_data):
     out_selection = out_data = no_update
     trigger = ctx.triggered_id
     if trigger:
         concept_index = button_ids.index(trigger)
         if n_clicks[concept_index]:
             path = trigger['potential_concept']
+            button_section = trigger['section']
             if path not in concept_data:
+                
                 parent_path = '-'.join(path.split('-')[:-1])
                 out_data = Patch()
-                out_data[parent_path]['children'][path] = active_tab
-                button_text = concept_data[parent_path][active_tab][path]
+                out_data[parent_path]['children'][path] = button_section
+                button_text = concept_data[parent_path][button_section][path]
                 out_data[path] = blank_concept(button_text)
             out_selection = path.split('-')
     return out_selection, out_data

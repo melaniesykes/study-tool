@@ -8,31 +8,26 @@ def labels_section(concept_data, nav_selection):
     path = '-'.join(nav_selection)
     buttons = concept_data[path]['Labels']
     return [
-        dbc.Button(button_text, id = {'potential_concept' : button_id})
+        dbc.Button(button_text, id = {'potential_concept' : button_id, 'section' : 'Labels'})
         for button_id, button_text in buttons.items()
     ]
 
-def categories_card_content(buttons):
+def categories_card_content(buttons, section):
     return [
-        dbc.Button(button_text, id = {'potential_concept' : button_id})
+        dbc.Button(button_text, id = {'potential_concept' : button_id, 'section' : section})
         for button_id, button_text in buttons.items()
     ]
 
-def categories_section(concept_data, nav_selection, category_tabs):
-    path = '-'.join(nav_selection)
-    
+def categories_section(category_type):
     buttons = dict()
-    if category_tabs and category_tabs[0]:
-        buttons = concept_data[path][category_tabs[0]]
-
     return dbc.Card([
         dbc.CardHeader(
             dbc.Tabs([
                 dbc.Tab(label = 'Belongs To', tab_id = 'Supersets'),
                 dbc.Tab(label = 'Contains', tab_id = 'Subsets'),
-            ], id = {'category_tabs' : 'existence_dummy'})
+            ], id = {'category_tabs' : 'existence_dummy'}, active_tab = category_type)
         ),
-        dbc.CardBody(categories_card_content(buttons), id = {'category_content' : 'existence_dummy'})
+        dbc.CardBody(categories_card_content(buttons, category_type), id = {'category_content' : 'existence_dummy'})
     ])
 
     
@@ -40,7 +35,7 @@ def properties_section(concept_data, nav_selection):
     path = '-'.join(nav_selection)
     buttons = concept_data[path]['Properties']
     return [
-        dbc.Button(button_text, id = {'potential_concept' : button_id})
+        dbc.Button(button_text, id = {'potential_concept' : button_id, 'section' : 'Properties'})
         for button_id, button_text in buttons.items()
     ]
 
@@ -49,16 +44,16 @@ def properties_section(concept_data, nav_selection):
     Input('concept_data', 'data'),
     Input('nav_selection', 'data'),
     Input('section_tabs', 'active_tab'),
-    State({'category_tabs' : ALL}, 'active_tab'),
+    State('last_category_type', 'data'),
     State('nav_selection', 'data'),
     prevent_initial_call = True
 )
-def update_section(concept_data, selected_concept, selected_tab, category_tabs, nav_selection):
+def update_section(concept_data, selected_concept, selected_tab, category_type, nav_selection):
     if ctx.triggered_id:
         if selected_tab == 'Labels':
             out_content = labels_section(concept_data, nav_selection)
         elif selected_tab == 'Categories':
-            out_content = categories_section(concept_data, nav_selection, category_tabs)
+            out_content = categories_section(category_type)
         elif selected_tab == 'Properties':
             out_content = properties_section(concept_data, nav_selection)
     else:
@@ -67,18 +62,24 @@ def update_section(concept_data, selected_concept, selected_tab, category_tabs, 
 
 @callback(
     Output({'category_content' : ALL}, 'children'),
+    Output('last_category_type', 'data'),
     Input({'category_tabs' : ALL}, 'active_tab'),
     State('concept_data', 'data'),
     State('nav_selection', 'data'),
     prevent_initial_call = True
 )
-def update_section(category_tabs, concept_data, nav_selection):
-    out_content = no_update
+def update_category_section(category_tabs, concept_data, nav_selection):
+    out_content = out_category_type = no_update
     if ctx.triggered_id:
         path = '-'.join(nav_selection)
     
         buttons = dict()
         if category_tabs and category_tabs[0]:
-            buttons = concept_data[path][category_tabs[0]]
-        out_content = [categories_card_content(buttons)]
-    return out_content
+            out_category_type = category_tabs[0]
+            buttons = concept_data[path][out_category_type]
+            out_content = [categories_card_content(buttons, out_category_type)]
+        else:
+            raise PreventUpdate
+    else:
+        raise PreventUpdate
+    return out_content, out_category_type

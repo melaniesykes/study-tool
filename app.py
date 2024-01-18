@@ -40,6 +40,7 @@ app.layout = dbc.Row([
     dbc.Col(nav_section),
     dbc.Col([
         concept_section,
+        dcc.Store('last_category_type', data = 'Subsets'),
         
         html.Br(),
         dcc.Markdown('Mode'),

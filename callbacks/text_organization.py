@@ -17,11 +17,11 @@ def button_section(text, section, split_type):
         if word:
             section_content.append(
                 dbc.Button(
-                    id = {'form' : section, 'text_button' : n},
+                    id = {'form' : section, 'format' : split_type, 'text_button' : n},
                     children = word.strip() + suffix, 
                     type = 'button',
-                    outline = True,
-                    color = 'primary'
+                    color = 'light',
+                    style={'margin': 5, 'padding': 2}
                 )
             )
     section_content.append(
@@ -34,12 +34,12 @@ def button_section(text, section, split_type):
 
 @callback(
     Output({'form' : 'recent_sentence'}, 'children', allow_duplicate=True),
-    Input({'form' : 'sentences', 'text_button' : ALL}, 'n_clicks'),
-    State({'form' : 'sentences', 'text_button' : ALL}, 'id'),
-    State({'form' : 'sentences', 'text_button' : ALL}, 'children'),
+    Input({'form' : 'sentences', 'format' : 'sentences', 'text_button' : ALL}, 'n_clicks'),
+    State({'form' : 'sentences', 'format' : 'sentences', 'text_button' : ALL}, 'id'),
+    State({'form' : 'sentences', 'format' : 'sentences', 'text_button' : ALL}, 'children'),
     prevent_initial_call = True
 )
-def break_down_sentence(n_clicks, sentence_buttons, sentences):
+def break_down_recent_sentence(n_clicks, sentence_buttons, sentences):
     out_buttons = no_update
     trigger = ctx.triggered_id
     if trigger:
@@ -51,7 +51,7 @@ def break_down_sentence(n_clicks, sentence_buttons, sentences):
 @callback(
     Output({'form' : MATCH}, 'children', allow_duplicate=True),
     Input({'form' : MATCH, 'component' : 'input_tabs'} , 'active_tab'),
-    State({'form' : MATCH, 'text_button' : ALL}, 'children'),
+    State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'children'),
 	State({'form' : MATCH, 'input' : ALL}, 'value'),
     prevent_initial_call = True
 )
@@ -77,12 +77,12 @@ def switch_form_format(trigger, button_text, input_text):
 @callback(
     Output({'form' : MATCH}, 'children', allow_duplicate=True),
     Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
-    Output({'form' : MATCH, 'text_button' : ALL}, 'active'),
+    Output({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'active'),
     Output({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
-    Input({'form' : MATCH, 'text_button' : ALL}, 'n_clicks'),
+    Input({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'n_clicks'),
     State({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
-    State({'form' : MATCH, 'text_button' : ALL}, 'active'),
-    State({'form' : MATCH, 'text_button' : ALL}, 'children'),
+    State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'active'),
+    State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'children'),
     State('section_tabs', 'active_tab'),
     State('mode', 'value'),
     State({'category_tabs' : ALL}, 'active_tab'),
@@ -94,10 +94,8 @@ def display_submission(n_clicks, last_clicked, is_active, buttons, selected_sect
     clicked_button = trigger['text_button']
 
     if trigger and n_clicks[clicked_button]:
-        print('selected_section', selected_section)
         if (selected_section == 'Categories') and category_tab:
             selected_section = category_tab[0]
-            print('after', selected_section, category_tab)
         
         out_active = [no_update for button in ctx.outputs_list[2]]
         if last_clicked:
