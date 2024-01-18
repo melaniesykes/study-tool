@@ -9,7 +9,7 @@ def labels_section(concept_data, nav_selection):
     buttons = concept_data[nav_selection]['Labels']
     return [
         dbc.Button(
-            concept_data.get(button_id, button_text), 
+            concept_data.get(button_id, dict()).get('text', button_text), 
             id = {'potential_concept' : button_id, 'section' : 'Labels'}
         )
         for button_id, button_text in buttons.items()
@@ -37,7 +37,10 @@ def categories_section(category_type):
 def properties_section(concept_data, nav_selection):
     buttons = concept_data[nav_selection]['Properties']
     return [
-        dbc.Button(button_text, id = {'potential_concept' : button_id, 'section' : 'Properties'})
+        dbc.Button(
+            concept_data.get(button_id, dict()).get('text', button_text), 
+            id = {'potential_concept' : button_id, 'section' : 'Properties'}
+        )
         for button_id, button_text in buttons.items()
     ]
 

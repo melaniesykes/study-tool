@@ -107,32 +107,36 @@ def display_nav(selected_concept, concept_data):
         result = []
         for child_id in cncpt['children']:
             child_nav_id = {'concept' : child_id, 'nav' : 'child'}
-            child = html.H6(concept_data[child_id]['text'], id = child_nav_id)
+            print(cncpt['text'], 'child', concept_data[child_id]['text'])
+            child = html.H5(concept_data[child_id]['text'], id = child_nav_id)
             result.append(child)
 
         for subset_id, subset_text_or_none in cncpt['Subsets'].items():
             child = concept_data.get(subset_id, dict())
             subset_text = child.get('text', subset_text_or_none)
-            result.append(html.H6(subset_text, id = {'concept' : subset_id, 'nav' : 'parent'}))
+            print(cncpt['text'], 'subset', subset_text)
+            result.append(html.H5(subset_text, id = {'concept' : subset_id, 'nav' : 'parent'}))
 
         for subset_id in cncpt['Implied Subsets']:
             subset_text = concept_data[subset_id]['text']
-            result.append(html.H6(subset_text, id = {'concept' : subset_id, 'nav' : 'parent'}))
+            print(cncpt['text'], 'subset', subset_text)
+
+            result.append(html.H5(subset_text, id = {'concept' : subset_id, 'nav' : 'parent'}))
         return result
     
     def concept_self_and_children(concept_id):
         result = []
         nav_id = {'concept' : concept_id, 'nav' : 'sibling'}
-        sibling = html.H5(concept_data[concept_id]['text'], id = nav_id)
+        sibling = html.H4(concept_data[concept_id]['text'], id = nav_id)
         print('self and children', concept_data[concept_id]['text'])
         result.append(sibling)
         result.extend(concept_children(concept_data[concept_id]))
         return result
     
-    def grandparent_tree(prnt, superset_text, label = html.H4):
+    def grandparent_tree(prnt, superset_text):
         superset_text = prnt.get('text', superset_text)
         print('grandchildren of', superset_text)
-        result = [label(superset_text, id = {'concept' : prnt['id'], 'nav' : 'parent'})]
+        result = [html.H3(superset_text, id = {'concept' : prnt['id'], 'nav' : 'parent'})]
         for sibling_id in prnt.get('children', set()):
             result.extend(concept_self_and_children(sibling_id))
         
@@ -147,22 +151,25 @@ def display_nav(selected_concept, concept_data):
     out_concept_label = f"## __{concept_data[selected_concept]['text']}__"
     concept = concept_data[selected_concept]
     out_children = []
-    listed_parents = set()
+    parent_id = concept['parent']
+
     for superset_id, superset_text_or_none in concept['Supersets'].items():
-        listed_parents.add(superset_id)
+        if superset_id == parent_id:
+            continue
         parent = concept_data.get(superset_id, dict())
-        out_children.extend(grandparent_tree(parent, superset_text_or_none))
+        superset_text = parent.get('text', superset_text_or_none)
+        out_children.append(html.H3(superset_text, id = {'concept' : parent['id'], 'nav' : 'super'}))
 
     for superset_id in concept['Implied Supersets']:
-        listed_parents.add(superset_id)
+        if superset_id == parent_id:
+            continue
         parent = concept_data.get(superset_id, dict())
-        out_children.extend(grandparent_tree(parent, parent['text']))
+        out_children.append(html.H3(parent['text'], id = {'concept' : parent['id'], 'nav' : 'implied super'}))
 
-    parent_id = concept['parent']
-    if parent_id and (parent_id not in listed_parents):
+    if parent_id:
         parent = concept_data[parent_id]
         if (selected_concept not in parent['Supersets']) and (selected_concept not in parent['Supersets']):
-            out_children.extend(grandparent_tree(parent, parent['text'], label = html.H3))
+            out_children.extend(grandparent_tree(parent, parent['text']))
         
     if out_children == []:
         out_children.extend(concept_self_and_children(selected_concept))
