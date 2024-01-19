@@ -9,20 +9,13 @@ def labels_section(concept_data, nav_selection):
     buttons = concept_data[nav_selection]['Labels']
     return [
         dbc.Button(
-            concept_data.get(button_id, dict()).get('text', button_text), 
+            concept_data[button_id]['text'], 
             id = {'potential_concept' : button_id, 'section' : 'Labels'}
         )
-        for button_id, button_text in buttons.items()
-    ]
-
-def categories_card_content(buttons, section):
-    return [
-        dbc.Button(button_text, id = {'potential_concept' : button_id, 'section' : section})
-        for button_id, button_text in buttons.items()
+        for button_id in buttons
     ]
 
 def categories_section(category_type):
-    buttons = dict()
     return dbc.Card([
         dbc.CardHeader(
             dbc.Tabs([
@@ -30,7 +23,8 @@ def categories_section(category_type):
                 dbc.Tab(label = 'Contains', tab_id = 'Subsets'),
             ], id = {'category_tabs' : 'existence_dummy'}, active_tab = category_type)
         ),
-        dbc.CardBody(categories_card_content(buttons, category_type), id = {'category_content' : 'existence_dummy'})
+        dbc.CardBody([], id = {'category_content' : 'existence_dummy'}
+        )
     ])
 
     
@@ -38,10 +32,10 @@ def properties_section(concept_data, nav_selection):
     buttons = concept_data[nav_selection]['Properties']
     return [
         dbc.Button(
-            concept_data.get(button_id, dict()).get('text', button_text), 
+            concept_data[button_id]['text'], 
             id = {'potential_concept' : button_id, 'section' : 'Properties'}
         )
-        for button_id, button_text in buttons.items()
+        for button_id in buttons
     ]
 
 @callback(
@@ -55,9 +49,6 @@ def properties_section(concept_data, nav_selection):
 )
 def update_section(concept_data, selected_concept, selected_tab, category_type, nav_selection):
     if ctx.triggered_id:
-        if 'concept_data.data' in ctx.triggered_prop_ids:
-            print()
-            pprint(concept_data)
 
         if selected_tab == 'Labels':
             out_content = labels_section(concept_data, nav_selection)
@@ -78,14 +69,21 @@ def update_section(concept_data, selected_concept, selected_tab, category_type, 
     prevent_initial_call = True
 )
 def update_category_section(category_tabs, concept_data, nav_selection):
+
     out_content = out_category_type = no_update
     if ctx.triggered_id:
     
         buttons = dict()
         if category_tabs and category_tabs[0]:
             out_category_type = category_tabs[0]
-            buttons = concept_data[nav_selection][out_category_type]
-            out_content = [categories_card_content(buttons, out_category_type)]
+            buttons = concept_data[nav_selection][out_category_type.lower()]
+            out_content = [[
+                dbc.Button(
+                    concept_data[button_id]['text'], 
+                    id = {'potential_concept' : button_id, 'section' : out_category_type}
+                )
+                for button_id in buttons
+            ]]
         else:
             raise PreventUpdate
     else:

@@ -3,17 +3,49 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 from callbacks import *
 import dash_mantine_components as dmc
+import dash_cytoscape as cyto
 
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP]) 
 
+server = app.server
+
 with open('test_text.txt') as f:
       test_text = f.read()
+
+network_layout = 'cose' # 'concentric'
 
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection', data = ''),
     dcc.Store(id = 'concept_data', data = {'' : blank_concept('', '', '')}),
-    html.Div(id = 'nav_display')
+    html.Div(
+        cyto.Cytoscape(
+            id = 'concept_network',
+            layout = {'name' : network_layout},
+            elements = [],
+            stylesheet = [
+                # Group selectors
+                {
+                    'selector': 'node',
+                    'style': {
+                        'content': 'data(label)',
+                        'text-halign':'center',
+                        'text-valign':'center',
+                        'width':'label',
+                        'height':'label',
+                        'shape':'square'
+                    }
+                },
+                {
+                    'selector': 'edge',
+                    'style': {
+                        'source-arrow-shape': 'triangle',
+                        'curve-style': 'bezier'
+                }
+            }
+            ]
+        )
+    )
 ])
 
 concept_section = html.Div([
