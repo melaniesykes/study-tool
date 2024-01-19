@@ -45,7 +45,9 @@ nav_section = html.Div([
             }
             ]
         )
-    )
+    ),
+    # dcc.Markdown('#### Questions'),
+    html.Div(id = 'quiz')
 ])
 
 concept_section = html.Div([
@@ -65,7 +67,7 @@ concept_section = html.Div([
 def text_form(form_type):
     return dbc.Form(
         dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = test_text),
-        id = {'form' : form_type}
+        id = {'form' : form_type}, style = {'padding': 3, 'background-color' : '#f8f9fa'}
     )
     
 app.layout = dbc.Row([
@@ -76,7 +78,7 @@ app.layout = dbc.Row([
         
         html.Br(),
         dcc.Markdown('Mode'),
-        dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode'),
+        dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode', inline = True),
 
         html.Br(),
         dbc.Card([

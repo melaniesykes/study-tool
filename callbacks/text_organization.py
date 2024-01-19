@@ -22,7 +22,12 @@ def button_section(text, section, split_type):
                     children = word.strip() + suffix, 
                     type = 'button',
                     color = 'light',
-                    style={'margin': 5, 'padding': 2}
+                    style = {
+                        'margin': 2, 
+                        'padding': 3,
+                        'border-radius' : '2px'
+                    },
+                    class_name = 'text-button'
                 )
             )
     section_content.append(
@@ -182,12 +187,13 @@ def new_concept(form_update, form_update_ids, nav_selection, concept_data):
         
         out_network = Patch()
         
-        out_network.append({
-            'data' : {'id' : out_selection_id, 'label' : selected_text}, 
-            'position': {'x': 0, 'y': 0}
-        })                                               
-        if parent:
-            out_network.append({'data': {'source': child, 'target': parent}})
+        if selected_section != 'Labels':
+            out_network.append({
+                'data' : {'id' : out_selection_id, 'label' : selected_text}, 
+                'position': {'x': 0, 'y': 0}
+            })                                               
+            if parent:
+                out_network.append({'data': {'source': child, 'target': parent}})
     else:
         raise PreventUpdate
     return out_data, out_network
