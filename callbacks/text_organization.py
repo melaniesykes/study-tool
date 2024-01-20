@@ -90,9 +90,9 @@ def switch_form_format(trigger, button_text, input_text):
     State({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
     State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'active'),
     State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'children'),
-    State('section_tabs', 'active_tab'),
+    State({'section_tabs' : ALL}, 'active_tab'),
     State('mode', 'value'),
-    State({'category_tabs' : ALL}, 'active_tab'),
+    State('last_category_type', 'data'),
     prevent_initial_call = True
 )
 def submit_concept(n_clicks, button_ids, last_clicked, is_active, buttons, selected_section, mode, category_tab):
@@ -101,8 +101,10 @@ def submit_concept(n_clicks, button_ids, last_clicked, is_active, buttons, selec
     button_number = trigger['text_button']
 
     if trigger and n_clicks[button_number]:
-        if (selected_section == 'Categories') and category_tab:
-            selected_section = category_tab[0]
+        if (selected_section == ['Categories']):
+            selected_section = category_tab
+        else:
+            selected_section = selected_section[0] if selected_section else None
         
         out_active = [no_update for button in ctx.outputs_list[2]]
         if last_clicked:
@@ -143,7 +145,7 @@ def blank_concept(parent, concept_id, concept_name):
     }
 
 @callback(
-    Output('concept_data', 'data', allow_duplicate = True),
+    Output('concept_data', 'data'),
     Output('concept_network', 'elements'),
     Input({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'data'),
     State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
@@ -160,11 +162,14 @@ def new_concept(form_update, form_update_ids, nav_selection, concept_data):
         [selected_section, selected_text] = form_update[update_index]
         selected_text = selected_text.replace(',', '').replace('.', '')
         out_data = Patch()
-        out_selection_id = str(uuid.uuid4())
 
+        out_selection_id = str(uuid.uuid4())
         new_concept = blank_concept(nav_selection, out_selection_id, selected_text)
         
-        if selected_section == 'Supersets':
+        if selected_section is None:
+            parent = ''
+            out_data[parent].append(out_selection_id)
+        elif selected_section == 'Supersets':
             parent = out_selection_id
             child = nav_selection
             new_concept['subsets'][child] = 'explicit'
@@ -184,16 +189,15 @@ def new_concept(form_update, form_update_ids, nav_selection, concept_data):
             else:
                 out_data[parent][selected_section].append(child) 
         out_data[out_selection_id] = new_concept        
-        
+    
         out_network = Patch()
-        
-        if selected_section != 'Labels':
-            out_network.append({
-                'data' : {'id' : out_selection_id, 'label' : selected_text}, 
-                'position': {'x': 0, 'y': 0}
-            })                                               
-            if parent:
-                out_network.append({'data': {'source': child, 'target': parent}})
+    
+        out_network.append({
+            'data' : {'id' : out_selection_id, 'label' : selected_text}, 
+            'position': {'x': 0, 'y': 0}
+        })                                               
+        if parent:
+            out_network.append({'data': {'source': child, 'target': parent}})
     else:
         raise PreventUpdate
     return out_data, out_network

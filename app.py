@@ -15,9 +15,11 @@ with open('test_text.txt') as f:
 
 network_layout = 'cose' # 'concentric'
 
+root_concept = {'' : []}
+
 nav_section = html.Div([
-    dcc.Store(id = 'nav_selection', data = ''),
-    dcc.Store(id = 'concept_data', data = {'' : blank_concept('', '', '')}),
+    dcc.Store(id = 'nav_selection'),
+    dcc.Store(id = 'concept_data', data = root_concept),
     html.Div(
         cyto.Cytoscape(
             id = 'concept_network',
@@ -50,19 +52,6 @@ nav_section = html.Div([
     html.Div(id = 'quiz')
 ])
 
-concept_section = html.Div([
-    dcc.Markdown(id = 'selected_concept_label'),
-    dbc.Card([
-        dbc.CardHeader(
-            dbc.Tabs([
-                dbc.Tab(label = 'Labels', tab_id = 'Labels'),
-                dbc.Tab(label = 'Categories', tab_id = 'Categories'),
-                dbc.Tab(label = 'Properties', tab_id = 'Properties'),
-            ], id = 'section_tabs')
-        ),
-        dbc.CardBody(id = 'section_content')
-    ])
-], id = 'concept_section')
 
 def text_form(form_type):
     return dbc.Form(
@@ -73,7 +62,8 @@ def text_form(form_type):
 app.layout = dbc.Row([
     dbc.Col(nav_section),
     dbc.Col([
-        concept_section,
+        dcc.Markdown(id = 'selected_concept_label'),
+        html.Div(no_concept_selection(root_concept), id = 'concept_details_section'),
         dcc.Store('last_category_type', data = 'Subsets'),
         
         html.Br(),

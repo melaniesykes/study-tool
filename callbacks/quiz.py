@@ -5,6 +5,7 @@ from pprint import pprint, pformat
 from dash.exceptions import PreventUpdate
 import random
 
+'''
 @callback(
     Output('quiz', 'children'),
     Input('concept_network', 'elements'),
@@ -97,3 +98,4 @@ def update_quiz(concept_network, concept_data):
 
     # questions.extend([html.Br(),str(related_concepts)])# pformat(concept_data, indent = 4)])
     return questions
+'''
