@@ -10,9 +10,10 @@ from pprint import pprint
     Input('concept_network', 'selectedNodeData'),
     State('concept_network', 'elements'),
     State({'concept_button' : ALL}, 'id'),
+    State('nav_selection', 'data'),
     prevent_initial_call = True
 )
-def select_concept_from_button(n_clicks, clicked_concept, network_selections, concept_network, button_ids):
+def select_concept_from_button(n_clicks, clicked_concept, network_selections, concept_network, button_ids, nav_selection):
     out_selection_id = no_update
     trigger = ctx.triggered_id
     if trigger:
@@ -24,7 +25,8 @@ def select_concept_from_button(n_clicks, clicked_concept, network_selections, co
         else:
             if (not concept_network) or n_clicks[button_ids.index(trigger)]:
                 out_selection_id = trigger['concept_button']
-             
+        if out_selection_id == nav_selection:
+            nav_selection = no_update
     return out_selection_id
 
 
