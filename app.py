@@ -56,7 +56,8 @@ nav_section = html.Div([
 def text_form(form_type):
     return dbc.Form(
         dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = test_text),
-        id = {'form' : form_type}, style = {'padding': 3, 'background-color' : '#f8f9fa'}
+        id = {'form' : form_type}, style = {'padding': 3, 'background-color' : '#f8f9fa'},
+        prevent_default_on_submit=True
     )
     
 app.layout = dbc.Row([
