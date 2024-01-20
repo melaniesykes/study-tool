@@ -20,6 +20,7 @@ root_concept = {'' : []}
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection'),
     dcc.Store(id = 'concept_data', data = root_concept),
+    dcc.Store(id = 'add_mode'),
     html.Div(
         cyto.Cytoscape(
             id = 'concept_network',
