@@ -21,6 +21,10 @@ nav_section = html.Div([
     dcc.Store(id = 'nav_selection'),
     dcc.Store(id = 'concept_data', data = root_concept),
     dcc.Store(id = 'add_mode'),
+    dcc.Store(id = 'concept_selection_change'),
+    dcc.Store(id = 'concepts_unselected'),
+    dcc.Store(id = 'last_concept_click'),
+
     html.Div(
         cyto.Cytoscape(
             id = 'concept_network',
