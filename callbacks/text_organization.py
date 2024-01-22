@@ -168,6 +168,7 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
         if selected_section is None:
             parent = ''
             out_data[parent].append(selection_id)
+            selected_section = 'independent'
         elif selected_section == 'Supersets':
             parent = selection_id
             child = nav_selection
@@ -206,10 +207,14 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
         if trigger != 'add_mode':
             out_network.append({
                 'data' : {'id' : selection_id, 'label' : selected_text}, 
-                'position': {'x': 0, 'y': 0}
+                'position': {'x': 0, 'y': 0},
+                'classes' : selected_section.lower()
             })                                           
         if parent:
-            out_network.append({'data': {'source': child, 'target': parent}})
+            out_network.append({
+                'data': {'source': child, 'target': parent},
+                'classes' : selected_section.lower()
+            })
     else:
         raise PreventUpdate
     return out_data, out_network

@@ -16,7 +16,7 @@ def network_stylesheet(selection = None):
                 'height':'label',
                 'shape':'square',
                 'padding' : '2px',
-                'background-color' : 'darkgray' # prevents default selection style styling
+                'background-color' : '#6FB1FC' # prevents default selection style styling
             }
         },
         {
@@ -25,12 +25,28 @@ def network_stylesheet(selection = None):
                 'source-arrow-shape': 'triangle',
                 'curve-style': 'bezier'
             }
+        },
+
+        # Class selectors
+        {
+            'selector': 'node.properties',
+            'style': {
+                'background-color': 'darkgray',
+            }
+        },
+        {
+            'selector': 'edge.properties',
+            'style': {'line-style': 'dotted', 'line-color': 'darkgray'},
         }
     ]
     if selection:
         stylesheet.append({
             'selector': f'node[id = "{selection}"]',
-            'style': {'background-color': '#6FB1FC'},
+            'style': { 
+                #'background-color': '#86B342',
+                'border-width': 2,
+                'border-color': '#86B342'
+            }
         })
     return stylesheet
 

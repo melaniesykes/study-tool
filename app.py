@@ -29,28 +29,7 @@ nav_section = html.Div([
             id = 'concept_network',
             layout = {'name' : network_layout},
             elements = [],
-            stylesheet = [
-                # Group selectors
-                {
-                    'selector': 'node',
-                    'style': {
-                        'content': 'data(label)',
-                        'text-halign':'center',
-                        'text-valign':'center',
-                        'width':'label',
-                        'height':'label',
-                        'shape':'square',
-                        'background-color' : 'darkgray' # prevents default selection style styling
-                    }
-                },
-                {
-                    'selector': 'edge',
-                    'style': {
-                        'source-arrow-shape': 'triangle',
-                        'curve-style': 'bezier'
-                    }
-                }
-            ]
+            stylesheet = network_stylesheet()
         )
     ),
     # dcc.Markdown('#### Questions'),
