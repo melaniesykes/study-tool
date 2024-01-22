@@ -25,7 +25,7 @@ def categories_content(concept_data, nav_selection, category_type):
     )
     return buttons
 
-def categories_section(category_type, content = None):
+def add_categories_section(category_type, content = None):
     return dbc.Card([
         dbc.CardHeader(
             dbc.Tabs([
@@ -37,15 +37,39 @@ def categories_section(category_type, content = None):
         )
     ])
 
-def properties_section(concept_data, nav_selection):
-    concepts = concept_data[nav_selection]['Properties']
+# def add_properties_section(concept_data, nav_selection):
+#     concepts = concept_data[nav_selection]['Properties']
+#     buttons = [
+#         dbc.Button(
+#             concept_data[concept_id]['text'], 
+#             id = {'concept_button' : concept_id}
+#         )
+#         for concept_id in concepts
+#     ]
+#     buttons.append(dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : 'Properties'}))
+#     return buttons
+
+def add_properties_section(concept_data, nav_selection):
+    concept = concept_data[nav_selection]
+    properties = concept['Properties']
     buttons = [
         dbc.Button(
-            concept_data[concept_id]['text'], 
-            id = {'concept_button' : concept_id}
+            concept_data[property_id]['text'], 
+            id = {'concept_button' : property_id}
         )
-        for concept_id in concepts
+        for property_id in properties
     ]
+    for superset_id in concept['supersets']:
+        superset = concept_data[superset_id]
+        if superset['Properties']:
+            buttons.append(dcc.Markdown(superset['text']))
+            buttons.extend([
+                dbc.Button(
+                    concept_data[superset_property_id]['text'], 
+                    id = {'concept_button' : superset_property_id}
+                )
+                for superset_property_id in superset['Properties']
+            ])
     buttons.append(dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : 'Properties'}))
     return buttons
 
@@ -72,12 +96,12 @@ def concept_details_section(category_type):
                 ], id = {'section_tabs' : 'existence_dummy'})
             ),
             dbc.CardBody(
-                categories_section(category_type),
+                add_categories_section(category_type),
                 id = {'section_content' : 'existence_dummy'})
         ])
     ]
 
-def no_concept_selection(concept_data):
+def select_something_section(concept_data):
     concepts = [
         dbc.Button(concept_data[button_id]['text'], id = {'concept_button' : button_id})
         for button_id in concept_data['']
@@ -115,19 +139,19 @@ def update_section(concept_data, selected_tab, nav_selection, category_type):
                 if selected_tab == ['Categories']:
                     out_category_content = [categories_content(concept_data, nav_selection, category_type)]
                 elif selected_tab == ['Properties']:
-                    out_section_content = [properties_section(concept_data, nav_selection)]
+                    out_section_content = [add_properties_section(concept_data, nav_selection)]
                 elif not outputs_list[0]:
                     out_concept_details = concept_details_section(category_type)
 
             else:
                 if selected_tab == ['Categories']:
                     content = categories_content(concept_data, nav_selection, category_type)
-                    out_section_content = [categories_section(category_type, content = content)]
+                    out_section_content = [add_categories_section(category_type, content = content)]
                 else:
-                    out_section_content = [properties_section(concept_data, nav_selection)]
+                    out_section_content = [add_properties_section(concept_data, nav_selection)]
         else:
             out_concept_label = None
-            out_concept_details = no_concept_selection(concept_data)
+            out_concept_details = select_something_section(concept_data)
     else:
         raise PreventUpdate
     return out_section_content, out_category_content, out_concept_details, out_concept_label
