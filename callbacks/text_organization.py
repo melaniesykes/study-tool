@@ -126,13 +126,13 @@ def new_concept_step_1(button_number, buttons, last_clicked, selected_section, m
 
 def blank_concept(parent, concept_id, concept_name):
     return {
-        'id' : concept_id,
-        'parent' : parent, # parent concept, not necessarily same as parent node
+        # 'id' : concept_id,
         'text' : concept_name,
         'Labels' : [],
         'supersets' : dict(),
         'subsets' : dict(),
         'Properties' : [],
+        'parent' : parent # parent concept, not necessarily same as parent node
     }
 
 @callback(
@@ -140,74 +140,76 @@ def blank_concept(parent, concept_id, concept_name):
     Output('concept_network', 'elements'),
     Input({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'data'),
     Input('add_mode', 'data'),
-    Input('concept_selection_change', 'data'),
     State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
     State('nav_selection', 'data'),
     State('concept_data', 'data'),
     prevent_initial_call = True
 )
-def new_concept_step_2(form_update, add_mode, selection_change, form_update_ids, nav_selection, concept_data):
+def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, concept_data):
 
     trigger = ctx.triggered_id
     out_data = out_network = no_update
 
     if trigger:
-        if trigger == 'concept_selection_change':
-            out_network = Patch()
-            unselect_id, select_id = selection_change
-            out_network[select_id]['selected'] = True
-            if unselect_id:
-                out_network[unselect_id]['selected'] = False
+        
+        if trigger == 'add_mode':
+            [selected_section, selection_id] = add_mode
+            new_concept = concept_data[selection_id]
+
         else:
-            if trigger == 'add_mode':
-                [selected_section, selection_id, unselect_id, select_id] = add_mode
-                new_concept = concept_data[selection_id]
+            update_index = form_update_ids.index(trigger)
+            [selected_section, selected_text] = form_update[update_index]
+            selected_text = selected_text.replace(',', '').replace('.', '')
 
+            selection_id = str(uuid.uuid4())
+            new_concept = blank_concept(nav_selection, selection_id, selected_text)
+
+        out_data = Patch()        
+        if selected_section is None:
+            parent = ''
+            out_data[parent].append(selection_id)
+        elif selected_section == 'Supersets':
+            parent = selection_id
+            child = nav_selection
+            new_concept['subsets'][child] = 1
+            out_data[child]['supersets'][parent] = 1
+            # each subset of the child is also a subset of the parent
+            for concept, distance in concept_data[child]['subsets'].items():
+                new_concept['subsets'][concept] = distance + 1
+                out_data[concept]['supersets'][parent] = distance + 1
+            # each superset of the parent is also a superset of the child
+            for concept, distance in new_concept['supersets'].items():
+                out_data[concept]['subsets'][child] = distance + 1
+                out_data[child]['supersets'][concept] = distance + 1
+        else:
+            parent = nav_selection
+            child = selection_id
+            if selected_section == 'Subsets':
+                new_concept['supersets'][parent] = 1
+                out_data[parent]['subsets'][child] = 1
+                # each superset of the parent has the child as a subset
+                # each superset of the parent is also a superset of the child
+                for concept, distance in concept_data[parent]['supersets'].items():
+                    out_data[concept]['subsets'][child] = distance + 1
+                    new_concept['supersets'][concept] = distance + 1
+                # each subset of the child is also a subset of the parent
+                # each subset of the child has the parent as a superset
+                for concept, distance in new_concept['subsets'].items():
+                    out_data[parent]['subsets'][concept] = distance + 1
+                    out_data[concept]['supersets'][parent] = distance + 1
             else:
-                update_index = form_update_ids.index(trigger)
-                [selected_section, selected_text] = form_update[update_index]
-                selected_text = selected_text.replace(',', '').replace('.', '')
+                out_data[parent][selected_section].append(child) 
+        out_data[selection_id] = new_concept        
 
-                selection_id = str(uuid.uuid4())
-                new_concept = blank_concept(nav_selection, selection_id, selected_text)
+        out_network = Patch()
 
-            out_data = Patch()        
-            if selected_section is None:
-                parent = ''
-                out_data[parent].append(selection_id)
-            elif selected_section == 'Supersets':
-                parent = selection_id
-                child = nav_selection
-                new_concept['subsets'][child] = 'explicit'
-                out_data[child]['supersets'][parent] = 'reverse'
-                for concept in concept_data[child]['subsets']:
-                    new_concept['subsets'][concept] = 'implicit'
-                    out_data[concept]['supersets'][parent] = 'implicit'
-            else:
-                parent = nav_selection
-                child = selection_id
-                if selected_section == 'Subsets':
-                    new_concept['supersets'][parent] = 'explicit'
-                    out_data[parent]['subsets'][child] = 'reverse'
-                    for concept in concept_data[parent]['supersets']:
-                        out_data[concept]['subsets'][child] = 'implicit'
-                        new_concept['supersets'][concept] = 'implicit'
-                else:
-                    out_data[parent][selected_section].append(child) 
-            out_data[selection_id] = new_concept        
-    
-            out_network = Patch()
-
-            if trigger == 'add_mode':
-                out_network[select_id]['selected'] = True            
-                out_network[unselect_id]['selected'] = False
-            else:
-                out_network.append({
-                    'data' : {'id' : selection_id, 'label' : selected_text}, 
-                    'position': {'x': 0, 'y': 0}
-                })                                           
-            # if parent:
-            #     out_network.append({'data': {'source': child, 'target': parent}})
+        if trigger != 'add_mode':
+            out_network.append({
+                'data' : {'id' : selection_id, 'label' : selected_text}, 
+                'position': {'x': 0, 'y': 0}
+            })                                           
+        if parent:
+            out_network.append({'data': {'source': child, 'target': parent}})
     else:
         raise PreventUpdate
     return out_data, out_network

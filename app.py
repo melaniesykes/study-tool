@@ -21,7 +21,6 @@ nav_section = html.Div([
     dcc.Store(id = 'nav_selection'),
     dcc.Store(id = 'concept_data', data = root_concept),
     dcc.Store(id = 'add_mode'),
-    dcc.Store(id = 'concept_selection_change'),
     dcc.Store(id = 'concepts_unselected'),
     dcc.Store(id = 'last_concept_click'),
 
@@ -40,7 +39,8 @@ nav_section = html.Div([
                         'text-valign':'center',
                         'width':'label',
                         'height':'label',
-                        'shape':'square'
+                        'shape':'square',
+                        'background-color' : 'darkgray' # prevents default selection style styling
                     }
                 },
                 {
@@ -48,8 +48,8 @@ nav_section = html.Div([
                     'style': {
                         'source-arrow-shape': 'triangle',
                         'curve-style': 'bezier'
+                    }
                 }
-            }
             ]
         )
     ),
