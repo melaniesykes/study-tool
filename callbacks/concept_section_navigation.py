@@ -154,10 +154,10 @@ def select_something_section(concept_data):
     Input('nav_selection', 'data'),
     Input('last_category_type', 'data'),
     Input({'property_buttons' : ALL}, 'value'),
-    # Input({'superset_property_buttons' : ALL}, 'value'),
+    State('property_path', 'data'),
     prevent_initial_call = True
 )
-def update_section(concept_data, selected_tab, nav_selection, category_type, props): #, sup_props):
+def update_section(concept_data, selected_tab, nav_selection, category_type, props, prop_val): #, sup_props):
     trigger = ctx.triggered_id
     outputs_list = ctx.outputs_list
     out_section_content = [no_update for o in outputs_list[0]]
@@ -165,20 +165,22 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
     out_concept_label = out_concept_details = no_update
 
     if trigger:
-        
         if nav_selection:
             out_concept_label = [f"## __{concept_data[nav_selection]['text']}__"]
             if trigger in ('concept_data', 'nav_selection', 'last_category_type'):
-                if selected_tab == ['Categories']:
-                    out_category_content = [categories_content(concept_data, nav_selection, category_type)]
-                elif selected_tab == ['Properties']:
-                    out_section_content = [add_properties_section(concept_data, nav_selection)]
-                elif not outputs_list[0]:
-                    out_concept_details = concept_details_section(category_type)
+                if concept_data[nav_selection]['is_property']:
+                    out_section_content = [edit_properties_section(concept_data, prop_val, nav_selection)]
+                else:
+                    if selected_tab == ['Categories']:
+                        out_category_content = [categories_content(concept_data, nav_selection, category_type)]
+                    elif selected_tab == ['Properties']:
+                        out_section_content = [add_properties_section(concept_data, nav_selection)]
+                    elif not outputs_list[0]:
+                        out_concept_details = concept_details_section(category_type)
             elif ('property_buttons' in trigger):
-                prop_val = ctx.triggered[0]['value']
+                prop_val_list = ctx.triggered[0]['value']
                 if prop_val:
-                    out_section_content = [edit_properties_section(concept_data, prop_val[0], nav_selection)]
+                    out_section_content = [edit_properties_section(concept_data, prop_val_list[0], nav_selection)]
             else:
                 if selected_tab == ['Categories']:
                     content = categories_content(concept_data, nav_selection, category_type)

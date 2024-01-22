@@ -55,19 +55,21 @@ def network_stylesheet(selection = None):
     Output('add_mode', 'data'),
     Output('nav_selection', 'data'),
     Output('concept_network', 'stylesheet'),
+    Output('property_path', 'data'),
     Input({'concept_button' : ALL}, 'n_clicks'),
     Input('last_concept_click', 'data'),
     Input('concepts_unselected', 'data'),
+    Input({'superset_property_buttons' : ALL}, 'value'),
     State('concept_network', 'elements'),
     State({'concept_button' : ALL}, 'id'),
     State('nav_selection', 'data'),
     State({'add_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
-def select_concept(n_clicks, clicked_concept, network_selections, 
+def select_concept(n_clicks, clicked_concept, network_selections, sup_props,
                    concept_network, button_ids, nav_selection, add_mode):
 
-    out_add_mode = out_selection_id = selection_id = out_network = no_update
+    out_add_mode = out_selection_id = selection_id = out_network = out_prop_path = no_update
     trigger = ctx.triggered_id
 
     if trigger:
@@ -90,17 +92,19 @@ def select_concept(n_clicks, clicked_concept, network_selections,
                 # assume concept change: no support for add mode except for from network
                 selection_id = trigger['concept_button']
                 out_network = network_stylesheet(selection_id)
-        # elif 'property_button' in trigger:
-        #     pass
-        # elif 'superset_property_button' in trigger:
-        #     pass
+        elif ('superset_property_buttons' in trigger):
+            prop_val = ctx.triggered[0]['value']
+            if prop_val:
+                selection_id = trigger['superset_property_buttons']
+                out_prop_path = prop_val[0]
+            
                 
                                 
         if selection_id == nav_selection:
             selection_id = no_update
         
         out_selection_id = selection_id
-    return out_add_mode, out_selection_id, out_network
+    return out_add_mode, out_selection_id, out_network, out_prop_path
 
 @callback(
     Output('last_concept_click', 'data'),

@@ -50,6 +50,7 @@ app.layout = dbc.Row([
         dcc.Markdown(id = 'selected_concept_label'),
         html.Div(select_something_section(root_concept), id = 'concept_details_section'),
         dcc.Store('last_category_type', data = 'Supersets'),
+        dcc.Store('property_path', data = []),
         
         html.Br(),
         dcc.Markdown('Mode'),
