@@ -10,19 +10,18 @@ def labels_section(concept_data, nav_selection):
     return ','.join(labels)
 
 
-
 def categories_content(concept_data, nav_selection, category_type):
     concepts = concept_data[nav_selection][category_type.lower()]
-    buttons = [
+    buttons = [dbc.Button('+', color = 'success', outline = True, id = {'add_button' : category_type})]
+        
+    buttons.extend([
         dbc.Button(
             concept_data[concept_id]['text'], 
             id = {'concept_button' : concept_id}
         )
         for concept_id in concepts
-    ]
-    buttons.append(
-        dbc.Button('+', color = 'success', outline = True, id = {'add_button' : category_type})
-    )
+    ])
+
     return buttons
 
 def add_categories_section(category_type, content = None):
@@ -37,28 +36,19 @@ def add_categories_section(category_type, content = None):
         )
     ])
 
-# def add_properties_section(concept_data, nav_selection):
-#     concepts = concept_data[nav_selection]['Properties']
-#     buttons = [
-#         dbc.Button(
-#             concept_data[concept_id]['text'], 
-#             id = {'concept_button' : concept_id}
-#         )
-#         for concept_id in concepts
-#     ]
-#     buttons.append(dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : 'Properties'}))
-#     return buttons
 
 def add_properties_section(concept_data, nav_selection):
     concept = concept_data[nav_selection]
     properties = concept['Properties']
-    buttons = [
+    buttons = [dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : 'Properties'})]
+        
+    buttons.extend([
         dbc.Button(
             concept_data[property_id]['text'], 
-            id = {'concept_button' : property_id}
+            id = {'property_button' : property_id}
         )
         for property_id in properties
-    ]
+    ])
     for superset_id in concept['supersets']:
         superset = concept_data[superset_id]
         if superset['Properties']:
@@ -66,11 +56,10 @@ def add_properties_section(concept_data, nav_selection):
             buttons.extend([
                 dbc.Button(
                     concept_data[superset_property_id]['text'], 
-                    id = {'concept_button' : superset_property_id}
+                    id = {'superset_property_button' : superset_property_id}
                 )
                 for superset_property_id in superset['Properties']
             ])
-    buttons.append(dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : 'Properties'}))
     return buttons
 
 @callback(
