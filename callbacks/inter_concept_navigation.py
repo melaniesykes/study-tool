@@ -72,12 +72,14 @@ def select_concept(n_clicks, clicked_concept, network_selections,
 
     if trigger:
         if trigger == 'last_concept_click':
-            selection_id = None if (clicked_concept == nav_selection) else clicked_concept
+            clicked_id, concept_type = clicked_concept
             if add_mode and add_mode[0]:
+                selection_id = None if (clicked_id == nav_selection) else clicked_id
                 add_category = ctx.states_list[3][0]['id']['add_button']
                 out_add_mode = [add_category, selection_id]
                 selection_id = no_update
-            else:
+            elif concept_type != 'properties':
+                selection_id = None if (clicked_id == nav_selection) else clicked_id
                 out_network = network_stylesheet(selection_id)
         elif trigger == 'concepts_unselected':
             selection_id = None
@@ -108,7 +110,7 @@ def select_concept(n_clicks, clicked_concept, network_selections,
 def store_clicks(clicked_concept):
     out_clicked = no_update
     if clicked_concept and ctx.triggered_id:
-        out_clicked = clicked_concept['data']['id']
+        out_clicked = (clicked_concept['data']['id'], clicked_concept['classes'])
     return out_clicked
 
 

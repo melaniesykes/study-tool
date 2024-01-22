@@ -171,11 +171,13 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
             out_data[parent].append(selection_id)
             selected_section = 'independent'          
         elif selected_section == 'Supersets':
-            if concept_data[nav_selection]['is_property']:
+            if concept_data[nav_selection]['is_property']: # a property belongs to a category
                 selected_section = 'Properties'
                 parent = nav_selection
                 child = selection_id
                 out_data[parent][selected_section].append(child)
+            elif concept_data.get(selection_id, dict()).get('is_property', False):
+                raise PreventUpdate # a category cannot belng to a property
             else:
                 parent = selection_id
                 child = nav_selection
