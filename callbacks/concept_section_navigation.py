@@ -38,29 +38,70 @@ def add_categories_section(category_type, content = None):
 
 
 def add_properties_section(concept_data, nav_selection):
+    # used for adding new properties and grouping them
     concept = concept_data[nav_selection]
     properties = concept['Properties']
     buttons = [dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : 'Properties'})]
-        
-    buttons.extend([
-        dbc.Button(
-            concept_data[property_id]['text'], 
-            id = {'property_button' : property_id}
+    buttons.append(
+        dbc.Checklist(
+            id = {'property_buttons' : nav_selection},
+            className='btn-group',
+            options = [{
+                'label' : concept_data[property_id]['text'], 
+                'value' : property_id
+            } for property_id in properties],
+            inputClassName='btn-check',
+            labelClassName='btn btn-light',
+            labelCheckedClassName='active',
         )
-        for property_id in properties
-    ])
+    )
+    # buttons.extend([
+    #     dbc.Button(
+    #         concept_data[property_id]['text'], 
+    #         id = {'property_button' : property_id}
+    #     )
+    #     for property_id in properties
+    # ])
     for superset_id in concept['supersets']:
         superset = concept_data[superset_id]
         if superset['Properties']:
             buttons.append(dcc.Markdown(superset['text']))
-            buttons.extend([
-                dbc.Button(
-                    concept_data[superset_property_id]['text'], 
-                    id = {'superset_property_button' : superset_property_id}
+            buttons.append(
+                dbc.Checklist(
+                    id = {'property_buttons' : superset_id},
+                    className='btn-group',
+                    options = [{
+                        'label' : concept_data[superset_property_id]['text'], 
+                        'value' : superset_property_id
+                    } for superset_property_id in superset['Properties']],
+                    inputClassName='btn-check',
+                    labelClassName='btn btn-light',
+                    labelCheckedClassName='active',
                 )
-                for superset_property_id in superset['Properties']
-            ])
+            )
+            # buttons.extend([
+            #     dbc.Button(
+            #         concept_data[superset_property_id]['text'], 
+            #         id = {'superset_property_button' : superset_property_id}
+            #     )
+            #     for superset_property_id in superset['Properties']
+            # ])
     return buttons
+
+def edit_properties_section(concept_data, property_id, parent_id):
+    prop = concept_data[property_id]
+    property_label = '>'.join([concept_data[parent_id]['text'], prop['text']])
+    sections = html.Div([
+        dbc.Button('<', id = {'back_button' : parent_id}),
+        dcc.Markdown(property_label),
+        dcc.Markdown('convert to category'),
+        dbc.Row([
+            dbc.Col(dcc.Markdown('subsets which give more details about this property')),
+            dbc.Col(dcc.Markdown('add comparison')),
+            dbc.Col(dcc.Markdown('new property of this property'))
+        ])
+    ])
+    return sections
 
 @callback(
     Output('last_category_type', 'data'),
@@ -112,9 +153,11 @@ def select_something_section(concept_data):
     Input({'section_tabs' : ALL}, 'active_tab'),
     Input('nav_selection', 'data'),
     Input('last_category_type', 'data'),
+    Input({'property_buttons' : ALL}, 'value'),
+    # Input({'superset_property_buttons' : ALL}, 'value'),
     prevent_initial_call = True
 )
-def update_section(concept_data, selected_tab, nav_selection, category_type):
+def update_section(concept_data, selected_tab, nav_selection, category_type, props): #, sup_props):
     trigger = ctx.triggered_id
     outputs_list = ctx.outputs_list
     out_section_content = [no_update for o in outputs_list[0]]
@@ -122,6 +165,7 @@ def update_section(concept_data, selected_tab, nav_selection, category_type):
     out_concept_label = out_concept_details = no_update
 
     if trigger:
+        
         if nav_selection:
             out_concept_label = [f"## __{concept_data[nav_selection]['text']}__"]
             if trigger in ('concept_data', 'nav_selection', 'last_category_type'):
@@ -131,7 +175,10 @@ def update_section(concept_data, selected_tab, nav_selection, category_type):
                     out_section_content = [add_properties_section(concept_data, nav_selection)]
                 elif not outputs_list[0]:
                     out_concept_details = concept_details_section(category_type)
-
+            elif ('property_buttons' in trigger):
+                prop_val = ctx.triggered[0]['value']
+                if prop_val:
+                    out_section_content = [edit_properties_section(concept_data, prop_val[0], nav_selection)]
             else:
                 if selected_tab == ['Categories']:
                     content = categories_content(concept_data, nav_selection, category_type)

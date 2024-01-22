@@ -90,10 +90,10 @@ def select_concept(n_clicks, clicked_concept, network_selections,
                 # assume concept change: no support for add mode except for from network
                 selection_id = trigger['concept_button']
                 out_network = network_stylesheet(selection_id)
-        elif 'property_button' in trigger:
-            pass
-        elif 'superset_property_button' in trigger:
-            pass
+        # elif 'property_button' in trigger:
+        #     pass
+        # elif 'superset_property_button' in trigger:
+        #     pass
                 
                                 
         if selection_id == nav_selection:
