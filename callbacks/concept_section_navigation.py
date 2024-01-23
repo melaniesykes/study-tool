@@ -1,13 +1,44 @@
-from dash import callback, Output, Input, State, ctx, ALL, html, dcc, no_update
+from dash import callback, Output, Input, State, ctx, ALL, html, dcc, no_update, MATCH
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 from pprint import pprint
 
 from dash.exceptions import PreventUpdate
 
-def labels_section(concept_data, nav_selection):
-    labels = concept_data[nav_selection]['Labels']
-    return ','.join(labels)
+def labels_section(concept_data, nav_selection, adding_label):
+    labels = sorted(list(set(concept_data[nav_selection]['Labels'])))
+    add_button_active = bool(adding_label and adding_label[0])
+    return [
+        dbc.Button('+', 
+            color = 'success', 
+            outline = True, 
+            id = {'add_label_button' : 'existence_dummy'},
+            active = add_button_active
+        ),
+        dbc.Checklist(
+            id = {'label_buttons' : 'existence_dummy'},
+            className='btn-group',
+            options = [{
+                'label' : label, 
+                'value' : label
+            } for label in labels],
+            inputClassName='btn-check',
+            labelClassName='btn btn-light',
+            labelCheckedClassName='active',
+        )
+    ]
+
+@callback(
+    Output({'add_label_button' : MATCH}, 'active'),
+    Input({'add_label_button' : MATCH}, 'n_clicks'),
+    State({'add_label_button' : MATCH}, 'active'),
+    prevent_initial_call = True
+)
+def toggle_add_label_mode(n_clicks, last_state):
+    out_active = no_update
+    if n_clicks:
+        out_active = not last_state
+    return out_active
 
 
 def categories_content(concept_data, nav_selection, category_type):
@@ -105,8 +136,9 @@ def update_category_tab(category_tabs):
 
     return out_category_type
 
-def concept_details_section(category_type):
+def concept_details_section(category_type, labels = None):
     return [
+        html.Div(id = {'selected_concept_labels_list' : 'existence_dummy'}, children = labels),
         dbc.Card([
             dbc.CardHeader(
                 dbc.Tabs([
@@ -132,19 +164,23 @@ def select_something_section(concept_data):
         concepts = [dcc.Markdown('## Select some text to create a concept.'), select_concept]
     return concepts
 
+
+
 @callback(
     Output({'section_content' : ALL}, 'children'),
     Output({'category_content' : ALL}, 'children'),
     Output('concept_details_section', 'children'),
     Output('selected_concept_label', 'children'),
+    Output({'selected_concept_labels_list' : ALL}, 'children'),
     Input('concept_data', 'data'),
     Input({'section_tabs' : ALL}, 'active_tab'),
     Input('nav_selection', 'data'),
     Input('last_category_type', 'data'),
     Input('property_path', 'data'),
+    State({'add_label_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
-def update_section(concept_data, selected_tab, nav_selection, category_type, property_path):
+def update_section(concept_data, selected_tab, nav_selection, category_type, property_path, adding_label):
     if not ctx.triggered_id:
         raise PreventUpdate
     
@@ -153,11 +189,14 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
     out_section_content = [no_update for o in outputs_list[0]]
     out_category_content = [no_update for o in outputs_list[1]]
     out_concept_label = out_concept_details = no_update
+    out_labels_label = [no_update for o in outputs_list[4]]
 
     if nav_selection:
         out_concept_label = [f"## __{concept_data[nav_selection]['text']}__"]
+        out_labels_label = [labels_section(concept_data, nav_selection, adding_label)] if out_labels_label else out_labels_label
     else:
         out_concept_label = None
+        out_labels_label = [None] if out_labels_label else out_labels_label
         out_concept_details = select_something_section(concept_data)
         triggers = None
 
@@ -176,7 +215,8 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
             elif selected_tab == ['Properties']:
                 out_section_content = [add_properties_section(concept_data, nav_selection)]
             elif not outputs_list[0]:
-                out_concept_details = concept_details_section(category_type)
+                labels = labels_section(concept_data, nav_selection, adding_label)
+                out_concept_details = concept_details_section(category_type, labels = labels)
         case _: # section tabs
             if selected_tab == ['Categories']:
                 content = categories_content(concept_data, nav_selection, category_type)
@@ -184,4 +224,4 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
             else:
                 out_section_content = [add_properties_section(concept_data, nav_selection)]
 
-    return out_section_content, out_category_content, out_concept_details, out_concept_label
+    return out_section_content, out_category_content, out_concept_details, out_concept_label, out_labels_label

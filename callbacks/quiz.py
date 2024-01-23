@@ -1,4 +1,4 @@
-from dash import callback, Output, Input, State, dcc, html
+from dash import callback, Output, Input, State, dcc, html, ALL
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 from pprint import pprint, pformat
@@ -19,10 +19,11 @@ import random
 @callback(
     Output('quiz', 'children'),
     Input('concept_network', 'elements'),
+    Input({'selected_concept_labels_list' : ALL}, 'children'),
     State('concept_data', 'data'),
     prevent_initial_call = True
 )
-def update_quiz(concept_network, concept_data):
+def update_quiz(concept_network, label_added, concept_data):
     questions = []
 
     has_superset = []

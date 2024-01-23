@@ -85,16 +85,19 @@ def switch_form_format(trigger, button_text, input_text):
     State({'section_tabs' : ALL}, 'active_tab'),
     State('mode', 'value'),
     State('last_category_type', 'data'),
+    State({'add_label_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
-def new_concept_step_1(button_number, buttons, last_clicked, selected_section, mode, category_tab):
+def new_concept_step_1(button_number, buttons, last_clicked, selected_section, mode, category_tab, add_label_mode):
     out_buttons = out_content = out_last_clicked = no_update
     out_value = [no_update]
     trigger = ctx.triggered_id
 
     if trigger and button_number:
         button_number = button_number[0]
-        if (selected_section == ['Categories']):
+        if add_label_mode and add_label_mode[0]:
+            selected_section = 'Labels'
+        elif (selected_section == ['Categories']):
             selected_section = category_tab
         else:
             selected_section = selected_section[0] if selected_section else None
@@ -148,30 +151,33 @@ def blank_concept(parent, concept_id, concept_name, selected_section, source = N
     prevent_initial_call = True
 )
 def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, concept_data):
-
     trigger = ctx.triggered_id
-    out_data = out_network = no_update
-
-    if trigger:
+    if not trigger:
+        raise PreventUpdate
         
-        if trigger == 'add_mode':
-            [selected_section, selection_id] = add_mode
-            new_concept = concept_data[selection_id]
+    out_data = out_network = no_update
+    if trigger == 'add_mode':
+        [selected_section, selection_id] = add_mode
+        new_concept = concept_data[selection_id]
 
-        else:
-            update_index = form_update_ids.index(trigger)
-            [selected_section, selected_text] = form_update[update_index]
-            selected_text = selected_text.replace(',', '').replace('.', '')
+    else:
+        update_index = form_update_ids.index(trigger)
+        [selected_section, selected_text] = form_update[update_index]
+        selected_text = selected_text.replace(',', '').replace('.', '')
 
+        if selected_section != 'Labels':
             selection_id = str(uuid.uuid4())
             new_concept = blank_concept(nav_selection, selection_id, selected_text, selected_section)
 
-        out_data = Patch()        
-        if selected_section is None:
+    out_data = Patch()
+    match selected_section:
+        case None:    
             parent = ''
             out_data[parent].append(selection_id)
-            selected_section = 'independent'          
-        elif selected_section == 'Supersets':
+            selected_section = 'independent'
+        case 'Labels':
+            out_data[nav_selection]['Labels'].append(selected_text)        
+        case 'Supersets':
             if concept_data[nav_selection]['is_property']: # a property belongs to a category
                 selected_section = 'Properties'
                 parent = nav_selection
@@ -192,30 +198,33 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
                 for concept, distance in new_concept['supersets'].items():
                     out_data[concept]['subsets'][child] = distance + 1
                     out_data[child]['supersets'][concept] = distance + 1
-        else:
+        case 'Subsets':
             parent = nav_selection
             child = selection_id
-            if selected_section == 'Subsets':
-                if new_concept['is_property']:
-                    selected_section = 'Properties'
-                    parent = selection_id
-                    child = nav_selection
-                    out_data[parent][selected_section].append(child)
-                else:
-                    new_concept['supersets'][parent] = 1
-                    out_data[parent]['subsets'][child] = 1
-                    # each superset of the parent has the child as a subset
-                    # each superset of the parent is also a superset of the child
-                    for concept, distance in concept_data[parent]['supersets'].items():
-                        out_data[concept]['subsets'][child] = distance + 1
-                        new_concept['supersets'][concept] = distance + 1
-                    # each subset of the child is also a subset of the parent
-                    # each subset of the child has the parent as a superset
-                    for concept, distance in new_concept['subsets'].items():
-                        out_data[parent]['subsets'][concept] = distance + 1
-                        out_data[concept]['supersets'][parent] = distance + 1
+            if new_concept['is_property']:
+                selected_section = 'Properties'
+                parent = selection_id
+                child = nav_selection
+                out_data[parent][selected_section].append(child)
             else:
-                out_data[parent][selected_section].append(child) 
+                new_concept['supersets'][parent] = 1
+                out_data[parent]['subsets'][child] = 1
+                # each superset of the parent has the child as a subset
+                # each superset of the parent is also a superset of the child
+                for concept, distance in concept_data[parent]['supersets'].items():
+                    out_data[concept]['subsets'][child] = distance + 1
+                    new_concept['supersets'][concept] = distance + 1
+                # each subset of the child is also a subset of the parent
+                # each subset of the child has the parent as a superset
+                for concept, distance in new_concept['subsets'].items():
+                    out_data[parent]['subsets'][concept] = distance + 1
+                    out_data[concept]['supersets'][parent] = distance + 1
+        case _:
+            parent = nav_selection
+            child = selection_id
+            out_data[parent][selected_section].append(child) 
+    
+    if selected_section != 'Labels':
         out_data[selection_id] = new_concept        
 
         out_network = Patch()
@@ -235,6 +244,5 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
                 'data': {'source': child, 'target': parent},
                 'classes' : selected_section.lower()
             })
-    else:
-        raise PreventUpdate
+
     return out_data, out_network
