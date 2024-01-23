@@ -1,4 +1,4 @@
-from dash import dcc, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update
+from dash import dcc, callback, Output, Input, State, ctx, ALL, MATCH, Patch, no_update, html
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 import uuid
@@ -12,29 +12,23 @@ def button_section(text, section, split_type):
     else:
         delimiter = suffix = '.'
     words = text.split(delimiter) if isinstance(text, str) else [t.replace(delimiter, '') for t in text]
-    section_content = []
-    n = 0
-    for n, word in enumerate(words):
-        if word:
-            section_content.append(
-                dbc.Button(
-                    id = {'form' : section, 'format' : split_type, 'text_button' : n},
-                    children = word.strip() + suffix, 
-                    type = 'button',
-                    color = 'light',
-                    style = {
-                        'margin': 2, 
-                        'padding': 3,
-                        'border-radius' : '2px'
-                    },
-                    class_name = 'text-button'
-                )
-            )
-    section_content.append(
+    words = [word.strip() + suffix for word in words if word]
+    buttons = dbc.Checklist(
+        id = {'form' : section, 'format' : split_type},
+        className='btn-group',
+        options = [{'label' : word, 'value' : n} for n, word in enumerate(words)],
+        inputClassName='btn-check',
+        labelClassName='btn btn-light',
+        labelCheckedClassName='active',
+        name = section
+    )
+
+    section_content = [
+        html.Div(buttons, className='radio-group'),
         dcc.Store(
             id = {'form' : section, 'store' : 'last_clicked'},
         )
-    )
+    ]
     return section_content
 
 
@@ -83,54 +77,51 @@ def switch_form_format(trigger, button_text, input_text):
 @callback(
     Output({'form' : MATCH}, 'children', allow_duplicate=True),
     Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
-    Output({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'active'),
     Output({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
-    Input({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'n_clicks'),
-    Input({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'id'),
+    Output({'form' : MATCH, 'format' : ALL}, 'value'),
+    Input({'form' : MATCH, 'format' : ALL}, 'value'),
+    State({'form' : MATCH, 'format' : ALL}, 'options'),
     State({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
-    State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'active'),
-    State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'children'),
     State({'section_tabs' : ALL}, 'active_tab'),
     State('mode', 'value'),
     State('last_category_type', 'data'),
     prevent_initial_call = True
 )
-def submit_concept(n_clicks, button_ids, last_clicked, is_active, buttons, selected_section, mode, category_tab):
+def submit_concept(button_number, buttons, last_clicked, selected_section, mode, category_tab):
     out_buttons = out_content = out_last_clicked = no_update
+    out_value = [no_update]
     trigger = ctx.triggered_id
-    button_number = trigger['text_button']
 
-    if trigger and n_clicks[button_number]:
+    if trigger and button_number:
+        button_number = button_number[0]
         if (selected_section == ['Categories']):
             selected_section = category_tab
         else:
             selected_section = selected_section[0] if selected_section else None
-        
-        out_active = [no_update for button in ctx.outputs_list[2]]
-        if last_clicked:
-            out_last_clicked = None
-            # if is_active[clicked_button]:
-            #     out_active[clicked_button] = False
-            # else:
-            start = last_clicked
-            end = button_number
 
-            selected_text = ' '.join(buttons[start: end + 1])
-            if mode == 'add':
-                out_active = [False for button in is_active]
+        start, end = None, None
+        if button_number:
+            if len(button_number) == 1:
+                out_last_clicked = button_number[0]
+            else:
+                start, end = sorted(button_number)
+                out_last_clicked = None
+                out_value = [[]]
+        else:
+            start, end = last_clicked, last_clicked
+        if (start is not None) and (end is not None):
+
+            selected_text = ' '.join([button['label'] for button in buttons[0][start: end + 1]])
             if mode in ('add', 'move'):
                 out_content = [selected_section, selected_text]
             if mode in ('delete', 'move'):
-                non_selected_text = buttons[:start] + buttons[end + 1:]
+                non_selected_text = [button['label'] for button in buttons[0][:start]]
+                non_selected_text.extend([button['label'] for button in buttons[0][end + 1:]])
                 out_buttons = button_section(non_selected_text, ctx.triggered_id['form'], 'words')
-
-        else:
-            out_last_clicked = button_number
-            out_active[out_last_clicked] = True
     else:
         raise PreventUpdate
 
-    return out_buttons, out_content, out_active, out_last_clicked 
+    return out_buttons, out_content, out_last_clicked, out_value
 
 
 def blank_concept(parent, concept_id, concept_name):

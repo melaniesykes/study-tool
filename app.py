@@ -56,7 +56,8 @@ nav_section = html.Div([
 def text_form(form_type):
     return dbc.Form(
         dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = test_text),
-        id = {'form' : form_type}, style = {'padding': 3, 'background-color' : '#f8f9fa'}
+        id = {'form' : form_type}, style = {'padding': 3, 'background-color' : '#f8f9fa'},
+        prevent_default_on_submit=True
     )
     
 app.layout = dbc.Row([
@@ -64,7 +65,7 @@ app.layout = dbc.Row([
     dbc.Col([
         dcc.Markdown(id = 'selected_concept_label'),
         html.Div(no_concept_selection(root_concept), id = 'concept_details_section'),
-        dcc.Store('last_category_type', data = 'Subsets'),
+        dcc.Store('last_category_type', data = 'Supersets'),
         
         html.Br(),
         dcc.Markdown('Mode'),
