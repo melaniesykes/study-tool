@@ -124,7 +124,7 @@ def new_concept_step_1(button_number, buttons, last_clicked, selected_section, m
     return out_buttons, out_content, out_last_clicked, out_value
 
 
-def blank_concept(parent, concept_id, concept_name, selected_section):
+def blank_concept(parent, concept_id, concept_name, selected_section, source = None):
     return {
         # 'id' : concept_id,
         'text' : concept_name,
@@ -133,7 +133,8 @@ def blank_concept(parent, concept_id, concept_name, selected_section):
         'supersets' : dict(),
         'subsets' : dict(),
         'Properties' : [],
-        'parent' : parent # parent concept, not necessarily same as parent node
+        'parent' : parent, # parent concept, not necessarily same as parent node
+        'source_property' : source
     }
 
 @callback(
