@@ -124,11 +124,12 @@ def new_concept_step_1(button_number, buttons, last_clicked, selected_section, m
     return out_buttons, out_content, out_last_clicked, out_value
 
 
-def blank_concept(parent, concept_id, concept_name):
+def blank_concept(parent, concept_id, concept_name, selected_section):
     return {
         # 'id' : concept_id,
         'text' : concept_name,
         'Labels' : [],
+        'is_property' : selected_section == 'Properties',
         'supersets' : dict(),
         'subsets' : dict(),
         'Properties' : [],
@@ -162,42 +163,56 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
             selected_text = selected_text.replace(',', '').replace('.', '')
 
             selection_id = str(uuid.uuid4())
-            new_concept = blank_concept(nav_selection, selection_id, selected_text)
+            new_concept = blank_concept(nav_selection, selection_id, selected_text, selected_section)
 
         out_data = Patch()        
         if selected_section is None:
             parent = ''
             out_data[parent].append(selection_id)
-            selected_section = 'independent'
+            selected_section = 'independent'          
         elif selected_section == 'Supersets':
-            parent = selection_id
-            child = nav_selection
-            new_concept['subsets'][child] = 1
-            out_data[child]['supersets'][parent] = 1
-            # each subset of the child is also a subset of the parent
-            for concept, distance in concept_data[child]['subsets'].items():
-                new_concept['subsets'][concept] = distance + 1
-                out_data[concept]['supersets'][parent] = distance + 1
-            # each superset of the parent is also a superset of the child
-            for concept, distance in new_concept['supersets'].items():
-                out_data[concept]['subsets'][child] = distance + 1
-                out_data[child]['supersets'][concept] = distance + 1
+            if concept_data[nav_selection]['is_property']: # a property belongs to a category
+                selected_section = 'Properties'
+                parent = nav_selection
+                child = selection_id
+                out_data[parent][selected_section].append(child)
+            elif concept_data.get(selection_id, dict()).get('is_property', False):
+                raise PreventUpdate # a category cannot belng to a property
+            else:
+                parent = selection_id
+                child = nav_selection
+                new_concept['subsets'][child] = 1
+                out_data[child]['supersets'][parent] = 1
+                # each subset of the child is also a subset of the parent
+                for concept, distance in concept_data[child]['subsets'].items():
+                    new_concept['subsets'][concept] = distance + 1
+                    out_data[concept]['supersets'][parent] = distance + 1
+                # each superset of the parent is also a superset of the child
+                for concept, distance in new_concept['supersets'].items():
+                    out_data[concept]['subsets'][child] = distance + 1
+                    out_data[child]['supersets'][concept] = distance + 1
         else:
             parent = nav_selection
             child = selection_id
             if selected_section == 'Subsets':
-                new_concept['supersets'][parent] = 1
-                out_data[parent]['subsets'][child] = 1
-                # each superset of the parent has the child as a subset
-                # each superset of the parent is also a superset of the child
-                for concept, distance in concept_data[parent]['supersets'].items():
-                    out_data[concept]['subsets'][child] = distance + 1
-                    new_concept['supersets'][concept] = distance + 1
-                # each subset of the child is also a subset of the parent
-                # each subset of the child has the parent as a superset
-                for concept, distance in new_concept['subsets'].items():
-                    out_data[parent]['subsets'][concept] = distance + 1
-                    out_data[concept]['supersets'][parent] = distance + 1
+                if new_concept['is_property']:
+                    selected_section = 'Properties'
+                    parent = selection_id
+                    child = nav_selection
+                    out_data[parent][selected_section].append(child)
+                else:
+                    new_concept['supersets'][parent] = 1
+                    out_data[parent]['subsets'][child] = 1
+                    # each superset of the parent has the child as a subset
+                    # each superset of the parent is also a superset of the child
+                    for concept, distance in concept_data[parent]['supersets'].items():
+                        out_data[concept]['subsets'][child] = distance + 1
+                        new_concept['supersets'][concept] = distance + 1
+                    # each subset of the child is also a subset of the parent
+                    # each subset of the child has the parent as a superset
+                    for concept, distance in new_concept['subsets'].items():
+                        out_data[parent]['subsets'][concept] = distance + 1
+                        out_data[concept]['supersets'][parent] = distance + 1
             else:
                 out_data[parent][selected_section].append(child) 
         out_data[selection_id] = new_concept        
@@ -206,7 +221,11 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
 
         if trigger != 'add_mode':
             out_network.append({
-                'data' : {'id' : selection_id, 'label' : selected_text}, 
+                'data' : {
+                    'id' : selection_id, 
+                    'label' : selected_text,
+                    'parent_concept' : parent
+                }, 
                 'position': {'x': 0, 'y': 0},
                 'classes' : selected_section.lower()
             })                                           

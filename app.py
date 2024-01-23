@@ -48,8 +48,9 @@ app.layout = dbc.Row([
     dbc.Col(nav_section),
     dbc.Col([
         dcc.Markdown(id = 'selected_concept_label'),
-        html.Div(no_concept_selection(root_concept), id = 'concept_details_section'),
+        html.Div(select_something_section(root_concept), id = 'concept_details_section'),
         dcc.Store('last_category_type', data = 'Supersets'),
+        dcc.Store('property_path', data = []),
         
         html.Br(),
         dcc.Markdown('Mode'),
