@@ -21,7 +21,7 @@ def categories_content(concept_data, nav_selection, category_type):
         for concept_id in concepts
     ]
     buttons.append(
-        dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : category_type})
+        dbc.Button('+', color = 'success', outline = True, id = {'add_button' : category_type})
     )
     return buttons
 
