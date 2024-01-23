@@ -221,7 +221,11 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
 
         if trigger != 'add_mode':
             out_network.append({
-                'data' : {'id' : selection_id, 'label' : selected_text}, 
+                'data' : {
+                    'id' : selection_id, 
+                    'label' : selected_text,
+                    'parent_concept' : parent
+                }, 
                 'position': {'x': 0, 'y': 0},
                 'classes' : selected_section.lower()
             })                                           

@@ -55,20 +55,13 @@ def add_properties_section(concept_data, nav_selection):
             labelCheckedClassName='active',
         )
     )
-    # buttons.extend([
-    #     dbc.Button(
-    #         concept_data[property_id]['text'], 
-    #         id = {'property_button' : property_id}
-    #     )
-    #     for property_id in properties
-    # ])
     for superset_id in concept['supersets']:
         superset = concept_data[superset_id]
         if superset['Properties']:
             buttons.append(dcc.Markdown(superset['text']))
             buttons.append(
                 dbc.Checklist(
-                    id = {'property_buttons' : superset_id},
+                    id = {'superset_property_buttons' : superset_id},
                     className='btn-group',
                     options = [{
                         'label' : concept_data[superset_property_id]['text'], 
@@ -79,21 +72,17 @@ def add_properties_section(concept_data, nav_selection):
                     labelCheckedClassName='active',
                 )
             )
-            # buttons.extend([
-            #     dbc.Button(
-            #         concept_data[superset_property_id]['text'], 
-            #         id = {'superset_property_button' : superset_property_id}
-            #     )
-            #     for superset_property_id in superset['Properties']
-            # ])
     return buttons
 
-def edit_properties_section(concept_data, property_id, parent_id):
-    prop = concept_data[property_id]
-    property_label = '>'.join([concept_data[parent_id]['text'], prop['text']])
+def edit_properties_section(concept_data, property_path, parent_id):
+    prop_owner = property_path['parent']
+    prop_path = property_path['property_path']
+    prop = concept_data[prop_path[-1]] # TODO allow nested propertues
+    property_label = '>'.join([concept_data[prop_owner]['text'], prop['text']])
     sections = html.Div([
         dbc.Button('<', id = {'back_button' : parent_id}),
         dcc.Markdown(property_label),
+        # TODO show existing properties of this property
         dcc.Markdown('convert to category'),
         dbc.Row([
             dbc.Col(dcc.Markdown('subsets which give more details about this property')),
@@ -143,7 +132,6 @@ def select_something_section(concept_data):
         concepts = [dcc.Markdown('## Select some text to create a concept.'), select_concept]
     return concepts
 
-
 @callback(
     Output({'section_content' : ALL}, 'children'),
     Output({'category_content' : ALL}, 'children'),
@@ -153,43 +141,47 @@ def select_something_section(concept_data):
     Input({'section_tabs' : ALL}, 'active_tab'),
     Input('nav_selection', 'data'),
     Input('last_category_type', 'data'),
-    Input({'property_buttons' : ALL}, 'value'),
-    State('property_path', 'data'),
+    Input('property_path', 'data'),
     prevent_initial_call = True
 )
-def update_section(concept_data, selected_tab, nav_selection, category_type, props, prop_val): #, sup_props):
-    trigger = ctx.triggered_id
+def update_section(concept_data, selected_tab, nav_selection, category_type, property_path):
+    if not ctx.triggered_id:
+        raise PreventUpdate
+    
+    triggers = ctx.triggered_prop_ids
     outputs_list = ctx.outputs_list
     out_section_content = [no_update for o in outputs_list[0]]
     out_category_content = [no_update for o in outputs_list[1]]
     out_concept_label = out_concept_details = no_update
 
-    if trigger:
-        if nav_selection:
-            out_concept_label = [f"## __{concept_data[nav_selection]['text']}__"]
-            if trigger in ('concept_data', 'nav_selection', 'last_category_type'):
-                if concept_data[nav_selection]['is_property']:
-                    out_section_content = [edit_properties_section(concept_data, prop_val, nav_selection)]
-                else:
-                    if selected_tab == ['Categories']:
-                        out_category_content = [categories_content(concept_data, nav_selection, category_type)]
-                    elif selected_tab == ['Properties']:
-                        out_section_content = [add_properties_section(concept_data, nav_selection)]
-                    elif not outputs_list[0]:
-                        out_concept_details = concept_details_section(category_type)
-            elif ('property_buttons' in trigger):
-                prop_val_list = ctx.triggered[0]['value']
-                if prop_val:
-                    out_section_content = [edit_properties_section(concept_data, prop_val_list[0], nav_selection)]
-            else:
-                if selected_tab == ['Categories']:
-                    content = categories_content(concept_data, nav_selection, category_type)
-                    out_section_content = [add_categories_section(category_type, content = content)]
-                else:
-                    out_section_content = [add_properties_section(concept_data, nav_selection)]
-        else:
-            out_concept_label = None
-            out_concept_details = select_something_section(concept_data)
+    if nav_selection:
+        out_concept_label = [f"## __{concept_data[nav_selection]['text']}__"]
     else:
-        raise PreventUpdate
+        out_concept_label = None
+        out_concept_details = select_something_section(concept_data)
+        triggers = None
+
+    match triggers:
+        case {'property_path.data' : _}:
+            if property_path['property_path']:
+                out_section_content = [edit_properties_section(concept_data, property_path, nav_selection)]
+                triggers = None
+
+    match triggers:
+        case None:
+            pass
+        case {'concept_data' : _} | {'nav_selection.data' : _} | {'last_category_type.data' : _}:
+            if selected_tab == ['Categories']:
+                out_category_content = [categories_content(concept_data, nav_selection, category_type)]
+            elif selected_tab == ['Properties']:
+                out_section_content = [add_properties_section(concept_data, nav_selection)]
+            elif not outputs_list[0]:
+                out_concept_details = concept_details_section(category_type)
+        case _: # section tabs
+            if selected_tab == ['Categories']:
+                content = categories_content(concept_data, nav_selection, category_type)
+                out_section_content = [add_categories_section(category_type, content = content)]
+            else:
+                out_section_content = [add_properties_section(concept_data, nav_selection)]
+
     return out_section_content, out_category_content, out_concept_details, out_concept_label
