@@ -21,7 +21,6 @@ nav_section = html.Div([
     dcc.Store(id = 'nav_selection'),
     dcc.Store(id = 'concept_data', data = root_concept),
     dcc.Store(id = 'add_mode'),
-    dcc.Store(id = 'concept_selection_change'),
     dcc.Store(id = 'concepts_unselected'),
     dcc.Store(id = 'last_concept_click'),
 
@@ -30,27 +29,7 @@ nav_section = html.Div([
             id = 'concept_network',
             layout = {'name' : network_layout},
             elements = [],
-            stylesheet = [
-                # Group selectors
-                {
-                    'selector': 'node',
-                    'style': {
-                        'content': 'data(label)',
-                        'text-halign':'center',
-                        'text-valign':'center',
-                        'width':'label',
-                        'height':'label',
-                        'shape':'square'
-                    }
-                },
-                {
-                    'selector': 'edge',
-                    'style': {
-                        'source-arrow-shape': 'triangle',
-                        'curve-style': 'bezier'
-                }
-            }
-            ]
+            stylesheet = network_stylesheet()
         )
     ),
     # dcc.Markdown('#### Questions'),
