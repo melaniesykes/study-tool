@@ -29,7 +29,8 @@ nav_section = html.Div([
             id = 'concept_network',
             layout = {'name' : network_layout},
             elements = [],
-            stylesheet = network_stylesheet()
+            stylesheet = network_stylesheet(),
+            style = {'width': '100%', 'height' : '50vh'}
         )
     ),
     # dcc.Markdown('#### Questions'),

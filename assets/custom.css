@@ -12,3 +12,9 @@
 .btn-group {
     flex-wrap: wrap;
 }
+
+.row {
+    margin: 0;
+    padding-left: calc(-.5 * var(--bs-gutter-x));
+    padding-right: calc(-.5 * var(--bs-gutter-x));
+}
