@@ -51,11 +51,11 @@ app.layout = dbc.Row([
         dcc.Markdown(id = 'selected_concept_label'),
         html.Div(select_something_section(root_concept), id = 'concept_details_section'),
         dcc.Store('last_category_type', data = 'Supersets'),
-        dcc.Store('property_path', data = []),
+        dcc.Store('property_path', data = {'parent': '', 'property_path' : []}),
         
-        html.Br(),
-        dcc.Markdown('Mode'),
-        dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode', inline = True),
+        # html.Br(),
+        # dcc.Markdown('Mode'),
+        # dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode', inline = True),
 
         html.Br(),
         dbc.Card([

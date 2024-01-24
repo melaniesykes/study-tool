@@ -68,11 +68,13 @@ def add_categories_section(category_type, content = None):
     ])
 
 
-def add_properties_section(concept_data, nav_selection):
+def add_properties_section(concept_data, property_path, nav_selection):
+    prop_path = [property_path['parent']] + property_path['property_path']
+
     # used for adding new properties and grouping them
-    concept = concept_data[nav_selection]
-    properties = concept['Properties']
     buttons = [dbc.Button('+', color = 'success', outline = True, id = {'mode_button' : 'Properties'})]
+    concept = concept_data[prop_path[-1]]
+    properties = concept['Properties']
     buttons.append(
         dbc.Checklist(
             id = {'property_buttons' : nav_selection},
@@ -103,24 +105,36 @@ def add_properties_section(concept_data, nav_selection):
                     labelCheckedClassName='active',
                 )
             )
-    return buttons
+    related_properties = [{
+        'label' : concept_data[property_id]['text'], 
+        'value' : property_id
+    } for property_id, condition_id in concept['related_properties'].items() if condition_id == nav_selection]
+    if related_properties:
+        buttons.append(
+            dbc.Checklist(
+                id = {'related_property_buttons' : prop_path[-1]},
+                className='btn-group',
+                options = related_properties,
+                inputClassName='btn-check',
+                labelClassName='btn btn-light',
+                labelCheckedClassName='active',
+            )
+        )
 
-def edit_properties_section(concept_data, property_path, parent_id):
-    prop_owner = property_path['parent']
-    prop_path = property_path['property_path']
-    prop = concept_data[prop_path[-1]] # TODO allow nested propertues
-    property_label = '>'.join([concept_data[prop_owner]['text'], prop['text']])
+    property_label = '>'.join([concept_data[c]['text'] for c in prop_path if (c != nav_selection)])
     sections = html.Div([
-        dbc.Button('<', id = {'back_button' : parent_id}),
+        dbc.Button('<', id = {'back_button' : nav_selection}),
         dcc.Markdown(property_label),
         # TODO show existing properties of this property
         dcc.Markdown('convert to category'),
         dbc.Row([
+            dbc.Col(html.Div(buttons)),
             dbc.Col(dcc.Markdown('subsets which give more details about this property')),
-            dbc.Col(dcc.Markdown('add comparison')),
-            dbc.Col(dcc.Markdown('new property of this property'))
+            dbc.Col(dcc.Markdown('add comparison'))
         ])
     ])
+
+    
     return sections
 
 @callback(
@@ -203,7 +217,7 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
     match triggers:
         case {'property_path.data' : _}:
             if property_path['property_path']:
-                out_section_content = [edit_properties_section(concept_data, property_path, nav_selection)]
+                out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
                 triggers = None
 
     match triggers:
@@ -213,7 +227,7 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
             if selected_tab == ['Categories']:
                 out_category_content = [categories_content(concept_data, nav_selection, category_type)]
             elif selected_tab == ['Properties']:
-                out_section_content = [add_properties_section(concept_data, nav_selection)]
+                out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
             elif not outputs_list[0]:
                 labels = labels_section(concept_data, nav_selection, adding_label)
                 out_concept_details = concept_details_section(category_type, labels = labels)
@@ -222,6 +236,6 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
                 content = categories_content(concept_data, nav_selection, category_type)
                 out_section_content = [add_categories_section(category_type, content = content)]
             else:
-                out_section_content = [add_properties_section(concept_data, nav_selection)]
+                out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
 
     return out_section_content, out_category_content, out_concept_details, out_concept_label, out_labels_label

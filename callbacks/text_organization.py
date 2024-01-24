@@ -83,12 +83,12 @@ def switch_form_format(trigger, button_text, input_text):
     State({'form' : MATCH, 'format' : ALL}, 'options'),
     State({'form' : MATCH, 'store' : 'last_clicked'}, 'data'),
     State({'section_tabs' : ALL}, 'active_tab'),
-    State('mode', 'value'),
+    # State('mode', 'value'),
     State('last_category_type', 'data'),
     State({'add_label_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
-def new_concept_step_1(button_number, buttons, last_clicked, selected_section, mode, category_tab, add_label_mode):
+def new_concept_step_1(button_number, buttons, last_clicked, selected_section, category_tab, add_label_mode):
     out_buttons = out_content = out_last_clicked = no_update
     out_value = [no_update]
     trigger = ctx.triggered_id
@@ -115,6 +115,7 @@ def new_concept_step_1(button_number, buttons, last_clicked, selected_section, m
         if (start is not None) and (end is not None):
 
             selected_text = ' '.join([button['label'] for button in buttons[0][start: end + 1]])
+            mode = 'add' # TODO bring back mode
             if mode in ('add', 'move'):
                 out_content = [selected_section, selected_text]
             if mode in ('delete', 'move'):
@@ -127,17 +128,16 @@ def new_concept_step_1(button_number, buttons, last_clicked, selected_section, m
     return out_buttons, out_content, out_last_clicked, out_value
 
 
-def blank_concept(parent, concept_id, concept_name, selected_section, source = None):
+def blank_concept(concept_name, selected_section, source):
     return {
-        # 'id' : concept_id,
         'text' : concept_name,
         'Labels' : [],
-        'is_property' : selected_section == 'Properties',
+        'is_property' : selected_section in ('Properties', 'sourced_property'),
         'supersets' : dict(),
         'subsets' : dict(),
-        'Properties' : [],
-        'parent' : parent, # parent concept, not necessarily same as parent node
-        'source_property' : source
+        'Properties' : [], # properties which always appply
+        'source_property' : source if (selected_section == 'sourced_property') else None,
+        'related_properties' : dict() # {property-which-sometimes-applies : concept-it-applies-to}
     }
 
 @callback(
@@ -148,14 +148,16 @@ def blank_concept(parent, concept_id, concept_name, selected_section, source = N
     State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
     State('nav_selection', 'data'),
     State('concept_data', 'data'),
+    State('property_path', 'data'),
     prevent_initial_call = True
 )
-def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, concept_data):
+def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, concept_data, property_path):
     trigger = ctx.triggered_id
     if not trigger:
         raise PreventUpdate
         
     out_data = out_network = no_update
+
     if trigger == 'add_mode':
         [selected_section, selection_id] = add_mode
         new_concept = concept_data[selection_id]
@@ -164,10 +166,15 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
         update_index = form_update_ids.index(trigger)
         [selected_section, selected_text] = form_update[update_index]
         selected_text = selected_text.replace(',', '').replace('.', '')
-
+        
+        if property_path['property_path']:
+            parent = nav_selection
+            nav_selection = property_path['property_path'][-1]
+            selected_section = 'sourced_property'
+        
         if selected_section != 'Labels':
             selection_id = str(uuid.uuid4())
-            new_concept = blank_concept(nav_selection, selection_id, selected_text, selected_section)
+            new_concept = blank_concept(selected_text, selected_section, nav_selection)
 
     out_data = Patch()
     match selected_section:
@@ -219,12 +226,21 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
                 for concept, distance in new_concept['subsets'].items():
                     out_data[parent]['subsets'][concept] = distance + 1
                     out_data[concept]['supersets'][parent] = distance + 1
+        case 'sourced_property':
+            # pass
+            source_parent = nav_selection
+            child = selection_id
+            out_data[source_parent]['related_properties'][child] = parent
+            out_data[parent]['Properties'].append(child)
         case _:
             parent = nav_selection
             child = selection_id
-            out_data[parent][selected_section].append(child) 
-    
+            out_data[parent][selected_section].append(child)
+                
     if selected_section != 'Labels':
+        out_data[selection_id] = new_concept        
+
+    if selected_section not in ('Labels', 'sourced_property'):
         out_data[selection_id] = new_concept        
 
         out_network = Patch()
