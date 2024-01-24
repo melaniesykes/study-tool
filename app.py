@@ -11,7 +11,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 with open('test_text.txt') as f:
-      test_text = f.read()
+    test_text = f.read()
 
 network_layout = 'cose' # 'concentric'
 
