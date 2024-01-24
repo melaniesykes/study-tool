@@ -56,20 +56,19 @@ def network_stylesheet(selection = None):
     Output('nav_selection', 'data'),
     Output('concept_network', 'stylesheet'),
     Output('property_path', 'data'),
-    Input({'concept_button' : ALL}, 'n_clicks'),
+    Input({'concept_buttons' : ALL}, 'value'),
     Input('last_concept_click', 'data'),
     Input('concepts_unselected', 'data'),
     Input({'property_buttons' : ALL}, 'value'),
     Input({'superset_property_buttons' : ALL}, 'value'),
     Input({'section_tabs' : ALL}, 'active_tab'),
     State('concept_network', 'elements'),
-    State({'concept_button' : ALL}, 'id'),
     State('nav_selection', 'data'),
     State({'add_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
-def select_concept(n_clicks, clicked_concept, network_selections, props, sup_props, tabs,
-                   concept_network, button_ids, nav_selection, add_mode):
+def select_concept(concepts, clicked_concept, network_selections, props, sup_props, tabs,
+                   concept_network, nav_selection, add_mode):
 
     out_add_mode = out_selection_id = selection_id = out_network = out_prop_path = no_update
     trigger = ctx.triggered_id
@@ -85,7 +84,7 @@ def select_concept(n_clicks, clicked_concept, network_selections, props, sup_pro
                 selection_id = None if (clicked_id == nav_selection) else clicked_id
                 
             if add_mode and add_mode[0]:
-                add_category = ctx.states_list[3][0]['id']['add_button']
+                add_category = ctx.states_list[2][0]['id']['add_button']
                 out_add_mode = [add_category, selection_id]
                 selection_id = no_update
             elif concept_type == 'properties':
@@ -101,13 +100,12 @@ def select_concept(n_clicks, clicked_concept, network_selections, props, sup_pro
             selection_id = None
             out_network = network_stylesheet()
 
-        case {'concept_button' : concept_id}:
-            if (not concept_network) or n_clicks[button_ids.index(trigger)]:
-                # assume concept change: no support for add mode except for from network
-                selection_id = concept_id
-                out_network = network_stylesheet(selection_id)
+        case {'concept_buttons' : _} if concepts and concepts[0]:
+            # assume concept change: no support for add mode except for from network
+            selection_id = concepts[0][0]
+            out_network = network_stylesheet(selection_id)
         
-        case {'property_buttons' : property_id}:
+        case {'property_buttons' : _}:
             if props and props[0]:
                 out_prop_path = Patch()
                 out_prop_path['property_path'] = props[0]

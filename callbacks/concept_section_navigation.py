@@ -146,7 +146,7 @@ def add_properties_section(concept_data, property_path, nav_selection):
                 'value' : condition_id
             } for condition_id in subset_conditional_properties],
             inputClassName='btn-check',
-            labelClassName='btn btn-light',
+            labelClassName='btn btn-primary',
             labelCheckedClassName='active',
         )
 
@@ -243,8 +243,17 @@ def concept_details_section(category_type, labels = None):
 
 def select_something_section(concept_data):
     concepts = [
-        dbc.Button(concept_data[button_id]['text'], id = {'concept_button' : button_id})
-        for button_id in concept_data['']
+        dbc.Checklist(
+            id = {'concept_buttons' : ''},
+            className='btn-group',
+            options = [{
+                'label' : concept_data[concept_id]['text'], 
+                'value' : concept_id
+            } for concept_id in concept_data['']],
+            inputClassName='btn-check',
+            labelClassName='btn btn-primary',
+            labelCheckedClassName='active',
+        )
     ]
     select_concept = dcc.Markdown('## Select a concept to edit it.')
     if concepts:
