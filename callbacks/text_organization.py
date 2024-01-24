@@ -165,8 +165,20 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
     else:
         update_index = form_update_ids.index(trigger)
         [selected_section, selected_text] = form_update[update_index]
-        selected_text = selected_text.replace(',', '').replace('.', '')
-        
+
+        # remove non-alphanumeric characters from beginning and end while avoiding regex
+        n = 0
+        for n, c in enumerate(selected_text):
+            if c.isalnum():
+                break
+        selected_text = selected_text[n:]
+        n = 0
+        for n, c in enumerate(reversed(selected_text)):
+            if c.isalnum():
+                break
+        if n != 0:
+            selected_text = selected_text[:-n]
+                    
         if property_path['property_path']:
             parent = nav_selection
             nav_selection = property_path['property_path'][-1]
