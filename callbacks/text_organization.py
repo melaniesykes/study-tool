@@ -15,10 +15,9 @@ def button_section(text, section, split_type):
     words = text.split(delimiter) if isinstance(text, str) else [t.replace(delimiter, '') for t in text]
     words = [word.strip() + suffix for word in words if word]
     events = [
-        {'event': 'click', 'props': ['type']}, # auxclick
-        {'event': 'keydown', 'props': ['type', 'key', 'altKey', 'ctrlKey', 'shiftKey']},
+        {'event': 'click', 'props': ['type']}, # support auxclick, mousedown, mouseup?
+        # {'event': 'keydown', 'props': ['type', 'key', 'altKey', 'ctrlKey', 'shiftKey']},
         {'event': 'dblclick', 'props' : ['type']}
-        # mousedown, mouseup
     ]
     section_content = [
         EventListener(
@@ -41,45 +40,57 @@ def button_section(text, section, split_type):
         )
     ]
 
-    # section_content = [
-    #     html.Div(buttons, className='radio-group'),
-    # ]
     return section_content
 
 
 @callback(
     Output({'form' : 'recent_sentence'}, 'children', allow_duplicate=True),
-    Input({'form' : 'sentences', 'format' : 'sentences', 'text_button' : ALL}, 'n_clicks'),
-    State({'form' : 'sentences', 'format' : 'sentences', 'text_button' : ALL}, 'id'),
-    State({'form' : 'sentences', 'format' : 'sentences', 'text_button' : ALL}, 'children'),
+    Input('current_sentence', 'data'),
+    State('sentences', 'data'),
     prevent_initial_call = True
 )
-def break_down_recent_sentence(n_clicks, sentence_buttons, sentences):
+def break_down_recent_sentence(selected_sentence_index, sentences):
     out_buttons = no_update
     trigger = ctx.triggered_id
     if trigger:
-        trigger_index = sentence_buttons.index(trigger)
-        sentence = sentences[trigger_index]
+        sentence = sentences[selected_sentence_index] + '.'
         out_buttons = button_section(sentence, 'recent_sentence', 'words')
     return out_buttons
 
 @callback(
-    Output({'form' : MATCH}, 'children', allow_duplicate=True),
-    Input({'form' : MATCH, 'component' : 'input_tabs'} , 'active_tab'),
-    State({'form' : MATCH, 'format' : ALL, 'text_button' : ALL}, 'children'),
-	State({'form' : MATCH, 'input' : ALL}, 'value'),
+    Output('current_sentence', 'data'),
+    Input({'form' : ALL, 'format' : 'sentences'}, 'value'),
+    Input('sentences', 'data'),
     prevent_initial_call = True
 )
-def switch_form_format(trigger, button_text, input_text):
-    out_buttons = no_update
+def choose_sentence(selected_sentence, sentences):
+    out_current_sentence = no_update
+    trigger = ctx.triggered_id
+    if trigger:
+        out_current_sentence = 0
+        if (trigger != 'sentences') and selected_sentence and selected_sentence[0]:
+            out_current_sentence = selected_sentence[0]
+
+    return out_current_sentence
+
+@callback(
+    Output({'form' : 'sentences'}, 'children', allow_duplicate=True),
+    Output('sentences', 'data'),
+    Input({'form' : 'sentences', 'component' : 'input_tabs'} , 'active_tab'),
+    State({'form' : 'sentences', 'input' : ALL}, 'value'),
+    State('sentences', 'data'),
+    prevent_initial_call = True
+)
+def store_text(trigger, input_text, sentences):
+    out_buttons = out_sentences = no_update
     form = ctx.triggered_id.get('form', None)
     active_tab = trigger.get('format_button')
     
-    text = None
-    if button_text:
-        text = ' '.join(button_text)
-    elif input_text:
+    if input_text:
         text = input_text[0]
+        out_sentences = [t.strip() for t in input_text[0].split('.') if t]
+    else:
+        text = '. '.join([sentence for sentence in sentences])        
 
     if (active_tab == 'text'):
         out_buttons = dmc.Textarea(id = {'input' : 'input', 'form' : form}, value = text, autosize = True)
@@ -87,8 +98,7 @@ def switch_form_format(trigger, button_text, input_text):
         if text:
             out_buttons = button_section(text, form, active_tab)
 
-    return out_buttons
-
+    return out_buttons, out_sentences
 
 @callback(
     Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
@@ -108,10 +118,9 @@ def switch_form_format(trigger, button_text, input_text):
 )
 def new_concept_step_1(n_events, selections, last_two_clicks, event, buttons, selected_section, category_tab, add_label_mode):
     trigger = ctx.triggered_id
-    if not trigger and selections:
+    if (not (trigger and selections)) or (not selections[0]):
         raise PreventUpdate
-    if not selections[0]:
-        raise PreventUpdate
+
     out_content = no_update
     out_selections = [no_update]
     out_buttons = [no_update]
@@ -127,10 +136,7 @@ def new_concept_step_1(n_events, selections, last_two_clicks, event, buttons, se
             selections = None
         out_last_two_clicks = [[last_two_clicks[-1], selections]]
 
-
-        # out_selections = [selections[-1:]]
     elif event == 'dblclick':
-
         if add_label_mode and add_label_mode[0]:
             selected_section = 'Labels'
         elif (selected_section == ['Categories']):
@@ -147,6 +153,18 @@ def new_concept_step_1(n_events, selections, last_two_clicks, event, buttons, se
         out_selections = [[]]
 
         selected_text = ' '.join([button['label'] for button in buttons[0][start: end + 1]])
+        # remove non-alphanumeric characters from beginning and end while avoiding regex
+        n = 0
+        for n, c in enumerate(selected_text):
+            if c.isalnum():
+                break
+        selected_text = selected_text[n:]
+        n = 0
+        for n, c in enumerate(reversed(selected_text)):
+            if c.isalnum():
+                break
+        if n != 0:
+            selected_text = selected_text[:-n]
         mode = 'add' # TODO bring back mode
         if mode in ('add', 'move'):
             out_content = [selected_section, selected_text]
@@ -195,19 +213,6 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
     else:
         update_index = form_update_ids.index(trigger)
         [selected_section, selected_text] = form_update[update_index]
-
-        # remove non-alphanumeric characters from beginning and end while avoiding regex
-        n = 0
-        for n, c in enumerate(selected_text):
-            if c.isalnum():
-                break
-        selected_text = selected_text[n:]
-        n = 0
-        for n, c in enumerate(reversed(selected_text)):
-            if c.isalnum():
-                break
-        if n != 0:
-            selected_text = selected_text[:-n]
                     
         if property_path['property_path']:
             parent = nav_selection

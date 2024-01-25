@@ -59,21 +59,29 @@ app.layout = dbc.Row([
         # dbc.RadioItems(options = ['add', 'move', 'delete'], value = 'add', id = 'mode', inline = True),
 
         html.Br(),
-        dbc.Card([
-            dbc.CardHeader(
-                dbc.Tabs(
-                    children = [
-                        dbc.Tab(label = 'Words', tab_id = {'format_button' : 'words', 'form' : 'recent_sentence'}),
-                        dbc.Tab(label = 'Text', tab_id = {'format_button' : 'text', 'form' : 'recent_sentence'}),
-                    ],
-                    id = {'form' : 'recent_sentence', 'component' : 'input_tabs'} 
-                )
+        dbc.Row([
+            dbc.Col(dbc.Button('<', id = 'prev_sentence'), width = 1),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(
+                        dbc.Tabs(
+                            children = [
+                                dbc.Tab(label = 'Words', tab_id = {'format_button' : 'words', 'form' : 'recent_sentence'}),
+                                dbc.Tab(label = 'Edit Text', tab_id = {'format_button' : 'text', 'form' : 'recent_sentence'}),
+                            ],
+                            id = {'form' : 'recent_sentence', 'component' : 'input_tabs'}
+                        )
+                    ),
+                    dbc.CardBody([
+                        dcc.Store({'form' : 'recent_sentence', 'form_dummy' : 'form_dummy'}),
+                        text_form('recent_sentence'),
+                        dmc.SegmentedControl(id = 'sentence_selector', data = [])
+                    ])
+                ])
             ),
-            dbc.CardBody([
-                dcc.Store({'form' : 'recent_sentence', 'form_dummy' : 'form_dummy'}),
-                text_form('recent_sentence')
-            ])
+            dbc.Col(dbc.Button('>', id = 'next_sentence'), width = 1)
         ]),
+        
 
         html.Br(),
         dbc.Card([
@@ -90,7 +98,9 @@ app.layout = dbc.Row([
             ),
             dbc.CardBody([
                 dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
-                text_form('sentences')
+                text_form('sentences'),
+                dcc.Store(id = 'sentences'),
+                dcc.Store(id = 'current_sentence', data = 0)
             ])
         ])
     ])
