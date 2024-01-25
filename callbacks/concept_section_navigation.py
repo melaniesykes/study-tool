@@ -44,14 +44,20 @@ def toggle_add_label_mode(n_clicks, last_state):
 def categories_content(concept_data, nav_selection, category_type):
     concepts = concept_data[nav_selection][category_type.lower()]
     buttons = [dbc.Button('+', color = 'success', outline = True, id = {'add_button' : category_type})]
-        
-    buttons.extend([
-        dbc.Button(
-            concept_data[concept_id]['text'], 
-            id = {'concept_button' : concept_id}
+    if concepts:
+        buttons.append(
+            dbc.Checklist(
+                id = {'concept_buttons' : category_type},
+                className='btn-group',
+                options = [{
+                    'label' : concept_data[concept_id]['text'], 
+                    'value' : concept_id
+                } for concept_id in concepts],
+                inputClassName='btn-check',
+                labelClassName='btn btn-primary',
+                labelCheckedClassName='active',
+            )
         )
-        for concept_id in concepts
-    ])
 
     return buttons
 
@@ -61,7 +67,7 @@ def add_categories_section(category_type, content = None):
             dbc.Tabs([
                 dbc.Tab(label = 'Belongs To', tab_id = 'Supersets'),
                 dbc.Tab(label = 'Contains', tab_id = 'Subsets'),
-            ], id = {'category_tabs' : 'existence_dummy'}, active_tab = category_type)
+            ], id = {'tabs' : 'existence_dummy', 'tab_type' : 'category'}, active_tab = category_type)
         ),
         dbc.CardBody(content, id = {'category_content' : 'existence_dummy'}
         )
@@ -214,7 +220,7 @@ def add_properties_section(concept_data, property_path, nav_selection):
 
 @callback(
     Output('last_category_type', 'data'),
-    Input({'category_tabs' : ALL}, 'active_tab'),
+    Input({'tabs' : ALL, 'tab_type' : 'category'}, 'active_tab'),
     prevent_initial_call = True
 )
 def update_category_tab(category_tabs):
@@ -233,7 +239,7 @@ def concept_details_section(category_type, labels = None):
                 dbc.Tabs([
                     dbc.Tab(label = 'Categories', tab_id = 'Categories'),
                     dbc.Tab(label = 'Properties', tab_id = 'Properties'),
-                ], id = {'section_tabs' : 'existence_dummy'})
+                ], id = {'tabs' : 'existence_dummy', 'tab_type' : 'section'})
             ),
             dbc.CardBody(
                 add_categories_section(category_type),
@@ -242,22 +248,22 @@ def concept_details_section(category_type, labels = None):
     ]
 
 def select_something_section(concept_data):
-    concepts = [
-        dbc.Checklist(
-            id = {'concept_buttons' : ''},
-            className='btn-group',
-            options = [{
-                'label' : concept_data[concept_id]['text'], 
-                'value' : concept_id
-            } for concept_id in concept_data['']],
-            inputClassName='btn-check',
-            labelClassName='btn btn-primary',
-            labelCheckedClassName='active',
-        )
-    ]
     select_concept = dcc.Markdown('## Select a concept to edit it.')
-    if concepts:
-        concepts.insert(0, select_concept)
+    if concept_data['']:
+        concepts = [
+            select_concept,
+            dbc.Checklist(
+                id = {'concept_buttons' : ''},
+                className='btn-group',
+                options = [{
+                    'label' : concept_data[concept_id]['text'], 
+                    'value' : concept_id
+                } for concept_id in concept_data['']],
+                inputClassName='btn-check',
+                labelClassName='btn btn-primary',
+                labelCheckedClassName='active',
+            )
+        ]
     else:
         concepts = [dcc.Markdown('## Select some text to create a concept.'), select_concept]
     return concepts
@@ -271,7 +277,7 @@ def select_something_section(concept_data):
     Output('selected_concept_label', 'children'),
     Output({'selected_concept_labels_list' : ALL}, 'children'),
     Input('concept_data', 'data'),
-    Input({'section_tabs' : ALL}, 'active_tab'),
+    Input({'tabs' : ALL, 'tab_type' : 'section'}, 'active_tab'),
     Input('nav_selection', 'data'),
     Input('last_category_type', 'data'),
     Input('property_path', 'data'),
@@ -317,11 +323,13 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
                 out_concept_details = concept_details_section(category_type, labels = labels)
         case {'property_path.data' : _} if (len(triggers) == 1):
             pass
-        case _: # section tabs
-            if selected_tab == ['Categories']:
-                content = categories_content(concept_data, nav_selection, category_type)
-                out_section_content = [add_categories_section(category_type, content = content)]
-            else:
-                out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
+        case {}: #{'tab_type' : 'section'}: # section tabs
+            match triggers.popitem()[1]:
+                case {'tab_type' : 'section'}:
+                    if selected_tab == ['Categories']:
+                        content = categories_content(concept_data, nav_selection, category_type)
+                        out_section_content = [add_categories_section(category_type, content = content)]
+                    else:
+                        out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
 
     return out_section_content, out_category_content, out_concept_details, out_concept_label, out_labels_label

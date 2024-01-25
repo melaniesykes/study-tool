@@ -1,10 +1,10 @@
 /* restyle radio items */
-.radio-group .form-check {
+.btn-group .form-check {
     padding-left: 0;
     border-radius : 2px;
 }
 
-.radio-group .form-check .form-check-label {
+.btn-group .form-check .form-check-label {
     padding : 3px;
     margin: 2px;
 }

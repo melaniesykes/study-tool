@@ -39,10 +39,11 @@ nav_section = html.Div([
 
 
 def text_form(form_type):
-    return dbc.Form(
+    return html.Div(
         dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = test_text),
-        id = {'form' : form_type}, style = {'padding': 3, 'background-color' : '#f8f9fa'},
-        prevent_default_on_submit=True
+        id = {'form' : form_type}, 
+        style = {'padding': 3, 'background-color' : '#f8f9fa'},
+        # prevent_default_on_submit=False
     )
     
 app.layout = dbc.Row([
@@ -95,6 +96,29 @@ app.layout = dbc.Row([
     ])
 ])
 
-     
+
+# app.clientside_callback(
+#     """
+#         function(id) {
+#             document.addEventListener("keydown", function(event) {
+#                 if (event.ctrlKey) {
+#                     if (event.key == 'z') {
+#                         document.getElementById('undoButton').click()
+#                         event.stopPropogation()
+#                     }
+#                     if (event.key == 'x') {
+#                         document.getElementById('redoButton').click()
+#                         event.stopPropogation()
+#                     }
+#                 }
+#             });
+#             return window.dash_clientside.no_update       
+#         }
+#     """,
+#     Output("undoButton", "id"),
+#     Input("undoButton", "id")
+# )
+
 if __name__ == '__main__':
-	app.run(debug=True)
+	
+    app.run(debug=True)

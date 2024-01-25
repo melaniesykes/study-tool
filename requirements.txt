@@ -6,3 +6,4 @@ dash-mantine-components==0.12.1
 dash-cytoscape==0.2.0
 numpy==1.24.2
 pandas==1.5.3
+dash-extensions==1.0.7

@@ -61,7 +61,7 @@ def network_stylesheet(selection = None):
     Input('concepts_unselected', 'data'),
     Input({'property_buttons' : ALL}, 'value'),
     Input({'superset_property_buttons' : ALL}, 'value'),
-    Input({'section_tabs' : ALL}, 'active_tab'),
+    Input({'tabs' : ALL, 'tab_type' : 'section'}, 'active_tab'),
     State('concept_network', 'elements'),
     State('nav_selection', 'data'),
     State({'add_button' : ALL}, 'active'),
@@ -114,7 +114,7 @@ def select_concept(concepts, clicked_concept, network_selections, props, sup_pro
             if sup_props and sup_props[0]:
                 out_prop_path = {'parent': superset_id, 'property_path' : sup_props[0]}
         
-        case {'section_tabs' : new_section}:
+        case {'tabs' : 'existence_dummy', 'tab_type' : 'section_tabs'}:
             out_prop_path = Patch()
             out_prop_path['property_path'] = []
 
