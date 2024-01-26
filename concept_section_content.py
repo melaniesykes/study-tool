@@ -29,7 +29,7 @@ def labels_section(concept_data, nav_selection, adding_label):
         )
     ]
 
-def pins_section(concept_data):
+def pins_section(concept_data, pins):
     content = [
         html.Span(
             'Pinned concepts',
@@ -39,26 +39,25 @@ def pins_section(concept_data):
         dbc.Button('+', 
             color = 'success', 
             outline = True, 
-            id = {'add_pin_button' : 'existence_dummy'}
+            id = {'add_button' : 'pins'}
         )
     ]
-    if concept_data['pins']:
-        content.append(
-            dbc.Checklist(
-                id = {'concept_buttons' : 'pins'},
-                className='btn-group',
-                options = [{
-                    'label' : concept_data[concept_id]['text'], 
-                    'value' : concept_id
-                } for concept_id in concept_data['pins']],
-                inputClassName='btn-check',
-                labelClassName='btn btn-primary',
-                labelCheckedClassName='active',
-            )
+    content.append(
+        dbc.Checklist(
+            id = {'concept_buttons' : 'pins', 'copy' : 'pins'},
+            className='btn-group',
+            options = [{
+                'label' : concept_data[concept_id]['text'], 
+                'value' : concept_id
+            } for concept_id in pins],
+            inputClassName='btn-check',
+            labelClassName='btn btn-primary',
+            labelCheckedClassName='active',
         )
+    )
     return html.Div(content, style = {'margin-bottom' : '20px'})
 
-def edit_pins_section(concept_data):
+def edit_pins_section(concept_data, pins):
     def path_str(nested_prop):
         path_str_list = []
         source = concept_data[nested_prop]['source_property']
@@ -68,14 +67,14 @@ def edit_pins_section(concept_data):
         return ': '.join([t for t in ['>'.join(path_str_list), concept_data[nested_prop]['text']] if t])
     return []
 
-def select_something_section(concept_data):
+def select_something_section(concept_data, pins):
     select_concept = dcc.Markdown('## Select a concept to edit it.')
     if concept_data['']:
         content = [
-            pins_section(concept_data),
+            pins_section(concept_data, pins),
             select_concept,
             dbc.Checklist(
-                id = {'concept_buttons' : ''},
+                id = {'copy' : '', 'concept_buttons' : ''},
                 className='btn-group',
                 options = [{
                     'label' : concept_data[concept_id]['text'], 
@@ -102,24 +101,29 @@ def add_categories_section(category_type, content = None):
         )
     ])
 
-def concept_details_section(concept_data, category_type, labels = None):
+def concept_details_section(concept_data, content, pins, labels = None, prop_label = None):
+    if prop_label:
+        active_tab = 'Properties'
+    else:
+        active_tab = 'Categories'
     content = [
-        dcc.Markdown(id = {'selected_concept_label' : 'existence_dummy'}),
+        dcc.Markdown(prop_label, id = {'selected_concept_label' : 'existence_dummy'}),
         html.Div(id = {'selected_concept_labels_list' : 'existence_dummy'}, children = labels),
         dbc.Card([
             dbc.CardHeader(
                 dbc.Tabs([
                     dbc.Tab(label = 'Categories', tab_id = 'Categories'),
                     dbc.Tab(label = 'Properties', tab_id = 'Properties'),
-                ], id = {'tabs' : 'existence_dummy', 'tab_type' : 'section'})
+                ], id = {'tabs' : 'existence_dummy', 'tab_type' : 'section'},
+                active_tab = active_tab)
             ),
             dbc.CardBody(
-                add_categories_section(category_type),
+                content,
                 id = {'section_content' : 'existence_dummy'})
         ])
     ]
     if concept_data['']:
-        content.insert(0, pins_section(concept_data))
+        content.insert(0, pins_section(concept_data, pins))
     return content
 
 def categories_content(concept_data, nav_selection, category_type):
@@ -128,7 +132,7 @@ def categories_content(concept_data, nav_selection, category_type):
     if concepts:
         buttons.append(
             dbc.Checklist(
-                id = {'concept_buttons' : category_type},
+                id = {'copy' : category_type, 'concept_buttons' : category_type},
                 className='btn-group',
                 options = [{
                     'label' : concept_data[concept_id]['text'], 
@@ -214,7 +218,7 @@ def add_properties_section(concept_data, property_path, nav_selection):
     subset_details = None
     if subset_conditional_properties:
         subset_details = dbc.Checklist(
-            id = {'concept_buttons' : prop_path[-1]},
+            id = {'copy' : prop_path[-1], 'concept_buttons' : prop_path[-1]},
             className='btn-group',
             options = [{
                 'label' : concept_data[condition_id]['text'], 

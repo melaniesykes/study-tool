@@ -15,11 +15,9 @@ with open('test_text.txt') as f:
 
 network_layout = 'cose' # 'concentric'
 
-root_concept = {'' : [], 'pins' : []}
-
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection'),
-    dcc.Store(id = 'concept_data', data = root_concept),
+    dcc.Store(id = 'concept_data', data = {'' : []}),
     dcc.Store(id = 'add_mode'),
     dcc.Store(id = 'concepts_unselected'),
     dcc.Store(id = 'last_concept_click'),
@@ -48,9 +46,10 @@ def text_form(form_type, value = None):
 app.layout = dbc.Row([
     dbc.Col(nav_section),
     dbc.Col([
-        html.Div(select_something_section(root_concept), id = 'concept_details_section'),
+        html.Div(select_something_section({'' : []}, []), id = 'concept_details_section'),
         dcc.Store('last_category_type', data = 'Supersets'),
         dcc.Store('property_path', data = {'parent': '', 'property_path' : []}),
+        dcc.Store('pins', data = []),
         
         # html.Br(),
         # dcc.Markdown('Mode'),

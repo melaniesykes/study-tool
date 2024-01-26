@@ -28,6 +28,11 @@ def flattened_triggers(triggered_prop_ids):
                 result[t] = None
     return result
 
-def value_if_exists(value, component):
-    return [value for c in component]
+# def value_if_exists(value, component):
+#     return [value for c in component]
+
+def value_if_exists(l):
+    if l and l[0]:
+        return l[0]
+    return None
 

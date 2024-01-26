@@ -265,7 +265,7 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
             out_data[parent].append(selection_id)
             selected_section = 'independent'
         case 'Labels':
-            out_data[nav_selection]['Labels'].append(selected_text)        
+            out_data[nav_selection]['Labels'].append(selected_text)      
         case 'Supersets':
             if concept_data[nav_selection]['is_property']: # a property belongs to a category
                 selected_section = 'Properties'
@@ -319,7 +319,7 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
             child = selection_id
             out_data[parent][selected_section].append(child)
                 
-    if selected_section != 'Labels':
+    if selected_section not in ('Labels'):
         out_data[selection_id] = new_concept        
 
     if selected_section not in ('Labels', 'sourced_property'):
