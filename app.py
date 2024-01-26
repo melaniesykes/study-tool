@@ -15,7 +15,7 @@ with open('test_text.txt') as f:
 
 network_layout = 'cose' # 'concentric'
 
-root_concept = {'' : []}
+root_concept = {'' : [], 'pins' : []}
 
 nav_section = html.Div([
     dcc.Store(id = 'nav_selection'),
@@ -43,13 +43,11 @@ def text_form(form_type, value = None):
         dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = value),
         id = {'form' : form_type}, 
         style = {'padding': 3, 'background-color' : '#f8f9fa'},
-        # prevent_default_on_submit=False
     )
     
 app.layout = dbc.Row([
     dbc.Col(nav_section),
     dbc.Col([
-        dcc.Markdown(id = 'selected_concept_label'),
         html.Div(select_something_section(root_concept), id = 'concept_details_section'),
         dcc.Store('last_category_type', data = 'Supersets'),
         dcc.Store('property_path', data = {'parent': '', 'property_path' : []}),

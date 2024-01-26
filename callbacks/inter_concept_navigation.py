@@ -62,12 +62,13 @@ def network_stylesheet(selection = None):
     Input({'property_buttons' : ALL}, 'value'),
     Input({'superset_property_buttons' : ALL}, 'value'),
     Input({'tabs' : ALL, 'tab_type' : 'section'}, 'active_tab'),
+    Input({'pins_label' : ALL}, 'n_clicks'),
     State('concept_network', 'elements'),
     State('nav_selection', 'data'),
     State({'add_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
-def select_concept(concepts, clicked_concept, network_selections, props, sup_props, tabs,
+def select_concept(concepts, clicked_concept, network_selections, props, sup_props, tabs, pins,
                    concept_network, nav_selection, add_mode):
 
     out_add_mode = out_selection_id = selection_id = out_network = out_prop_path = no_update
@@ -117,6 +118,10 @@ def select_concept(concepts, clicked_concept, network_selections, props, sup_pro
         case {'tabs' : 'existence_dummy', 'tab_type' : 'section_tabs'}:
             out_prop_path = Patch()
             out_prop_path['property_path'] = []
+        
+        case {'pins_label' : _} if pins[0]:
+            selection_id = 'pins'
+            out_network = network_stylesheet()
 
     if selection_id == nav_selection:
         selection_id = no_update

@@ -29,7 +29,7 @@ def update_quiz(concept_network, label_added, concept_data):
     has_superset = []
     has_subset = []
     for concept_id, concept in concept_data.items():
-        if concept_id == '':
+        if concept_id in ('', 'pins'):
             continue
         if concept['supersets']:
             has_superset.append(concept_id)
