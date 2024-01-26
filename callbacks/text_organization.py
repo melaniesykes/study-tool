@@ -3,8 +3,8 @@ import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 import uuid
 from dash_extensions import EventListener
-
 from dash.exceptions import PreventUpdate
+from utils import pattern_in_triggers
 
 def button_section(text, section, split_type):
     if split_type == 'words':
@@ -42,10 +42,9 @@ def button_section(text, section, split_type):
 
     return section_content
 
-
 @callback(
     Output({'form' : 'recent_sentence'}, 'children', allow_duplicate=True),
-    Input('current_sentence', 'data'),
+    Input('current_sentence', 'value'),
     State('sentences', 'data'),
     prevent_initial_call = True
 )
@@ -58,51 +57,87 @@ def break_down_recent_sentence(selected_sentence_index, sentences):
     return out_buttons
 
 @callback(
-    Output('current_sentence', 'data'),
+    Output('current_sentence', 'value'),
+    Output('current_sentence', 'options'),
+    Output({'form' : ALL, 'format' : 'sentences'}, 'value', allow_duplicate=True),
     Input({'form' : ALL, 'format' : 'sentences'}, 'value'),
     Input('sentences', 'data'),
+    Input('prev_sentence', 'n_clicks'),
+    Input('next_sentence', 'n_clicks'),
+    State('current_sentence', 'value'),
+    State('current_sentence', 'options'),
     prevent_initial_call = True
 )
-def choose_sentence(selected_sentence, sentences):
-    out_current_sentence = no_update
-    trigger = ctx.triggered_id
-    if trigger:
-        out_current_sentence = 0
-        if (trigger != 'sentences') and selected_sentence and selected_sentence[0]:
-            out_current_sentence = selected_sentence[0]
+def choose_sentence(selected_sentence, sentences, prev_sentence, next_sentence, current_sentence, sentence_options):
+    out_current_sentence = out_sentence_list = no_update
+    out_sentence_selector = [no_update for s in selected_sentence]
+    triggers = ctx.triggered_prop_ids
+    if triggers:
+        n_sentences = sentence_options[-1]['value'] if sentence_options else 0
+        current_sentence = current_sentence if current_sentence else 0
+        match triggers:
+            case {'prev_sentence.n_clicks' : _}:
+                if prev_sentence and current_sentence:
+                        current_sentence -= 1
+            case {'next_sentence.n_clicks' : _}:
+                if next_sentence:
+                    if current_sentence == n_sentences:
+                        current_sentence = 0
+                    else:
+                        current_sentence += 1
+            case {'sentences.data' : _}:
+                out_sentence_list = [{'label' : '', 'value' : n} for n, s in enumerate(sentences)]
+            case _:
+                if pattern_in_triggers({'format' : 'sentences'}, ctx.triggered_prop_ids):
+                    if selected_sentence and selected_sentence[0]:
+                        current_sentence = selected_sentence[0]
+                    
+        if selected_sentence and (selected_sentence[0] != current_sentence):
+            out_sentence_selector = [current_sentence]
+        out_current_sentence = 0 if (current_sentence > n_sentences) else current_sentence
 
-    return out_current_sentence
+    return out_current_sentence, out_sentence_list, out_sentence_selector
 
 @callback(
     Output({'form' : 'sentences'}, 'children', allow_duplicate=True),
     Output('sentences', 'data'),
     Input({'form' : 'sentences', 'component' : 'input_tabs'} , 'active_tab'),
+    Input('full_text', 'is_open'),
     State({'form' : 'sentences', 'input' : ALL}, 'value'),
     State('sentences', 'data'),
     prevent_initial_call = True
 )
-def store_text(trigger, input_text, sentences):
+def store_text(active_tab, text_visible, input_text, sentences):
     out_buttons = out_sentences = no_update
-    form = ctx.triggered_id.get('form', None)
-    active_tab = trigger.get('format_button')
+    trigger = ctx.triggered_id
+    if trigger == 'full_text':
+        if (not input_text) or text_visible:
+            raise PreventUpdate
+        active_tab = None
+    else:
+        form = ctx.triggered_id.get('form', None)
+        active_tab = active_tab.get('format_button')
     
-    if input_text:
+    if input_text: # the user was previously on the text edit tab
         text = input_text[0]
         out_sentences = [t.strip() for t in input_text[0].split('.') if t]
+        if active_tab in ('words', 'sentences'):
+            if text:
+                out_buttons = button_section(text, form, active_tab)
     else:
-        text = '. '.join([sentence for sentence in sentences])        
+        text = '. '.join(sentences)        
 
-    if (active_tab == 'text'):
-        out_buttons = dmc.Textarea(id = {'input' : 'input', 'form' : form}, value = text, autosize = True)
-    elif active_tab in ('words', 'sentences'):
-        if text:
-            out_buttons = button_section(text, form, active_tab)
+        if (active_tab == 'text'):
+            out_buttons = dmc.Textarea(id = {'input' : 'input', 'form' : form}, value = text, autosize = True)
+        elif active_tab in ('words', 'sentences'):
+            if text:
+                out_buttons = button_section(text, form, active_tab)
 
     return out_buttons, out_sentences
 
 @callback(
     Output({'form' : MATCH, 'form_dummy' : 'form_dummy'}, 'data'),
-    Output({'form' : MATCH, 'format' : ALL}, 'value'),
+    Output({'form' : MATCH, 'format' : ALL}, 'value', allow_duplicate=True),
     Output({'form' : MATCH, 'format' : ALL}, 'options'),
     Output({'form' : MATCH, 'format' : ALL, 'component' : 'last_two_clicks'}, 'data'),
     Input({'form' : MATCH, 'format' : ALL, 'component' : 'event_listener'}, 'n_events'),
@@ -309,3 +344,20 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
             })
 
     return out_data, out_network
+
+@callback(
+    Output('full_text', 'is_open'),
+    Output('toggle_text_visibility', 'children'),
+    Input('toggle_text_visibility', 'n_clicks'),
+    State('full_text', 'is_open'),
+)
+def toggle_full_text_visibility(n_clicks, text_visible):
+    out_is_visible = out_button_text = no_update
+    if ctx.triggered_id and n_clicks:
+        if text_visible:
+            out_is_visible = False
+            out_button_text = 'show full text'
+        else:
+            out_is_visible = True
+            out_button_text = 'hide full text'
+    return out_is_visible, out_button_text

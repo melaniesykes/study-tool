@@ -38,9 +38,9 @@ nav_section = html.Div([
 ])
 
 
-def text_form(form_type):
+def text_form(form_type, value = None):
     return html.Div(
-        dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = test_text),
+        dmc.Textarea(id = {'input' : 'input', 'form' : form_type}, autosize = True, value = value),
         id = {'form' : form_type}, 
         style = {'padding': 3, 'background-color' : '#f8f9fa'},
         # prevent_default_on_submit=False
@@ -75,7 +75,15 @@ app.layout = dbc.Row([
                     dbc.CardBody([
                         dcc.Store({'form' : 'recent_sentence', 'form_dummy' : 'form_dummy'}),
                         text_form('recent_sentence'),
-                        dmc.SegmentedControl(id = 'sentence_selector', data = [])
+                        # html.Div(id = 'sentence_selector')
+                        dbc.RadioItems(
+                            id = 'current_sentence', 
+                            style = {'width' : '100%'},
+                            className = 'btn-group',
+                            inputClassName='btn-check',
+                            labelClassName='btn btn-light',
+                            labelCheckedClassName='active'
+                        )
                     ])
                 ])
             ),
@@ -84,25 +92,29 @@ app.layout = dbc.Row([
         
 
         html.Br(),
-        dbc.Card([
-            dbc.CardHeader(
-                dbc.Tabs(
-                    children = [
-                        dbc.Tab(label = 'Words', tab_id = {'format_button' : 'words', 'form' : 'sentences'}),
-                        dbc.Tab(label = 'Sentences', tab_id = {'format_button' : 'sentences', 'form' : 'sentences'}),
-                        dbc.Tab(label = 'Text', tab_id = {'format_button' : 'text', 'form' : 'sentences'})
-                    ], 
-                    id = {'form' : 'sentences', 'component' : 'input_tabs'},
-                    active_tab = {'format_button' : 'text', 'form' : 'sentences'}
-                )
-            ),
-            dbc.CardBody([
-                dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
-                text_form('sentences'),
-                dcc.Store(id = 'sentences'),
-                dcc.Store(id = 'current_sentence', data = 0)
-            ])
-        ])
+        html.Div('hide full text', id = 'toggle_text_visibility'),
+        dbc.Collapse(
+            dbc.Card([
+                dbc.CardHeader(
+                    dbc.Tabs(
+                        children = [
+                            dbc.Tab(label = 'Words', tab_id = {'format_button' : 'words', 'form' : 'sentences'}),
+                            dbc.Tab(label = 'Sentences', tab_id = {'format_button' : 'sentences', 'form' : 'sentences'}),
+                            dbc.Tab(label = 'Text', tab_id = {'format_button' : 'text', 'form' : 'sentences'})
+                        ], 
+                        id = {'form' : 'sentences', 'component' : 'input_tabs'},
+                        active_tab = {'format_button' : 'text', 'form' : 'sentences'}
+                    )
+                ),
+                dbc.CardBody([
+                    dcc.Store({'form' : 'sentences', 'form_dummy' : 'form_dummy'}),
+                    text_form('sentences', value = test_text),
+                    dcc.Store(id = 'sentences'),
+                ])
+            ]),
+            id = 'full_text',
+            is_open = True
+        )
     ])
 ])
 
