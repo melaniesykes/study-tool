@@ -39,17 +39,17 @@ def update_category_tab(category_tabs):
     Output({'selected_concept_label' : ALL}, 'children'),
     Output({'selected_concept_labels_list' : ALL}, 'children'),
     Output({'tabs' : ALL, 'tab_type' : 'section'}, 'active_tab'),
-    Output({'copy' : 'pins', 'concept_buttons' : ALL}, 'options'),
+    Output({'pins' : ALL}, 'children'),
     Input('concept_data', 'data'),
     Input({'tabs' : ALL, 'tab_type' : 'section'}, 'active_tab'),
     Input('nav_selection', 'data'),
     Input('last_category_type', 'data'),
-    Input('property_path', 'data'),
+    Input('property_selection', 'data'),
     Input('pins', 'data'),
     State({'add_label_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
-def update_section(concept_data, selected_tab, nav_selection, category_type, property_path, pins, adding_label):
+def update_section(concept_data, selected_tab, nav_selection, category_type, prop_selection, pins, adding_label):
     if not ctx.triggered_id:
         raise PreventUpdate
     
@@ -72,42 +72,40 @@ def update_section(concept_data, selected_tab, nav_selection, category_type, pro
         triggers = None
 
     match triggers:
-        case {'property_path' : _}:
-            if property_path['property_path']:
+        case {'property_selection' : _}:
+            if prop_selection:
                 if out_section_content:
                     if selected_tab != ['Properties']:
                         out_tab = ['Properties']
-                    out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
+                    out_section_content = [add_properties_section(concept_data, prop_selection, nav_selection)]
                 else:
                     prop_label = f"## __{concept_data[nav_selection]['text']}__"
                     labels = labels_section(concept_data, nav_selection, adding_label)
-                    content = add_properties_section(concept_data, property_path, nav_selection)
-                    out_concept_details = concept_details_section(concept_data, content, labels = labels, prop_label = prop_label)
+                    content = add_properties_section(concept_data, prop_selection, nav_selection)
+                    out_concept_details = concept_details_section(concept_data, content, pins, prop_label, labels = labels)
                 triggers = None
 
     match triggers:
         case None:
             pass
         case {'pins' : _}:
-            out_pins = [[{
-                'label' : concept_data[concept_id]['text'], 
-                'value' : concept_id
-            } for concept_id in pins]]
+            out_pins = [[pin_button(concept_data, concept_id) for concept_id in pins]]
         case {'concept_data' : _} | {'nav_selection' : _} | {'last_category_type' : _}:
             if (not out_section_content):
                 labels = labels_section(concept_data, nav_selection, adding_label)
                 content = categories_content(concept_data, nav_selection, category_type)
                 content = add_categories_section(category_type, content = content)
-                out_concept_details = concept_details_section(concept_data, content, pins, labels = labels)
+                prop_label = f"## __{concept_data[nav_selection]['text']}__"
+                out_concept_details = concept_details_section(concept_data, content, pins, prop_label, labels = labels)
             elif selected_tab == ['Categories']:
                 out_category_content = [categories_content(concept_data, nav_selection, category_type)]
             elif selected_tab == ['Properties']:
-                out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
+                out_section_content = [add_properties_section(concept_data, prop_selection, nav_selection)]
         case {'tab_type' : 'section'}: # section tabs
             if selected_tab == ['Categories']:
                 content = categories_content(concept_data, nav_selection, category_type)
                 out_section_content = [add_categories_section(category_type, content = content)]
             else:
-                out_section_content = [add_properties_section(concept_data, property_path, nav_selection)]
+                out_section_content = [add_properties_section(concept_data, prop_selection, nav_selection)]
 
     return out_section_content, out_category_content, out_concept_details, out_concept_label, out_labels_label, out_tab, out_pins

@@ -5,17 +5,6 @@ from pprint import pprint, pformat
 from dash.exceptions import PreventUpdate
 import random
 
-# {
-#     'text' : concept_name,
-#     'Labels' : [],
-#     'is_property' : selected_section == 'Properties',
-#     'supersets' : dict(),
-#     'subsets' : dict(),
-#     'Properties' : [],
-#     'parent' : parent, # parent concept, not necessarily same as parent node
-#     'source_property' : source
-# }
-
 @callback(
     Output('quiz', 'children'),
     Input('concept_network', 'elements'),

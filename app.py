@@ -48,7 +48,7 @@ app.layout = dbc.Row([
     dbc.Col([
         html.Div(select_something_section({'' : []}, []), id = 'concept_details_section'),
         dcc.Store('last_category_type', data = 'Supersets'),
-        dcc.Store('property_path', data = {'parent': '', 'property_path' : []}),
+        dcc.Store('property_selection'),
         dcc.Store('pins', data = []),
         
         # html.Br(),

@@ -211,15 +211,17 @@ def new_concept_step_1(n_events, selections, last_two_clicks, event, buttons, se
     return out_content, out_selections, out_buttons, out_last_two_clicks
 
 
-def blank_concept(concept_name, selected_section, source):
+def blank_concept(concept_name, selected_section, source, condition):
+    is_property = selected_section in ('Properties', 'sourced_property')
     return {
         'text' : concept_name,
         'Labels' : [],
-        'is_property' : selected_section in ('Properties', 'sourced_property'),
+        'is_property' : is_property,
         'supersets' : dict(),
         'subsets' : dict(),
         'Properties' : [], # properties which always appply
-        'source_property' : source if (selected_section == 'sourced_property') else None,
+        'property_source' : source if is_property else None,
+        'condition' : condition,
         'related_properties' : dict() # {property-which-sometimes-applies : concept-it-applies-to}
     }
 
@@ -231,10 +233,10 @@ def blank_concept(concept_name, selected_section, source):
     State({'form' : ALL, 'form_dummy' : 'form_dummy'}, 'id'),
     State('nav_selection', 'data'),
     State('concept_data', 'data'),
-    State('property_path', 'data'),
+    State('property_selection', 'data'),
     prevent_initial_call = True
 )
-def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, concept_data, property_path):
+def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, concept_data, prop_selection):
     trigger = ctx.triggered_id
     if not trigger:
         raise PreventUpdate
@@ -246,17 +248,19 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
         new_concept = concept_data[selection_id]
 
     else:
+        condition = None
         update_index = form_update_ids.index(trigger)
         [selected_section, selected_text] = form_update[update_index]
                     
-        if property_path['property_path']:
-            parent = nav_selection
-            nav_selection = property_path['property_path'][-1]
+        if prop_selection and (selected_section == 'Properties'):
+            condition = nav_selection
+            nav_selection = prop_selection
             selected_section = 'sourced_property'
+
         
         if selected_section != 'Labels':
             selection_id = str(uuid.uuid4())
-            new_concept = blank_concept(selected_text, selected_section, nav_selection)
+            new_concept = blank_concept(selected_text, selected_section, nav_selection, condition)
 
     out_data = Patch()
     match selected_section:
@@ -308,16 +312,13 @@ def new_concept_step_2(form_update, add_mode, form_update_ids, nav_selection, co
                 for concept, distance in new_concept['subsets'].items():
                     out_data[parent]['subsets'][concept] = distance + 1
                     out_data[concept]['supersets'][parent] = distance + 1
-        case 'sourced_property':
-            # pass
-            source_parent = nav_selection
-            child = selection_id
-            out_data[source_parent]['related_properties'][child] = parent
-            out_data[parent]['Properties'].append(child)
-        case _:
+        case 'sourced_property' | 'Properties':
             parent = nav_selection
             child = selection_id
-            out_data[parent][selected_section].append(child)
+            if condition:
+                source = concept_data[parent]['property_source']
+                out_data[source]['related_properties'][child] = condition
+            out_data[parent]['Properties'].append(child)
                 
     if selected_section not in ('Labels'):
         out_data[selection_id] = new_concept        

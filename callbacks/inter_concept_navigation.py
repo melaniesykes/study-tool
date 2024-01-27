@@ -56,31 +56,31 @@ def network_stylesheet(selection = None):
     Output('add_mode', 'data'),
     Output('nav_selection', 'data'),
     Output('concept_network', 'stylesheet'),
-    Output('property_path', 'data'),
+    Output('property_selection', 'data'),
     Output('pins', 'data'),
-    Input({'copy' : ALL, 'concept_buttons' : ALL}, 'value'),
+    Input({'concept_buttons' : ALL}, 'value'),
     Input('last_concept_click', 'data'),
     Input('concepts_unselected', 'data'),
     Input({'property_buttons' : ALL}, 'value'),
     Input({'superset_property_buttons' : ALL}, 'value'),
-    # Input({'tabs' : ALL, 'tab_type' : 'section'}, 'active_tab'),
     Input({'pins_label' : ALL}, 'n_clicks'),
-    State('concept_network', 'elements'),
+    Input({'id' : ALL, 'pin_button' : ALL, 'parent' : ALL}, 'n_clicks'),
+    Input({'id' : ALL, 'pin_button' : ALL, 'parent' : ALL}, 'id'),
     State('nav_selection', 'data'),
     State({'add_button' : ALL}, 'active'),
     prevent_initial_call = True
 )
 def select_concept(concepts, clicked_concept, network_selections, props, sup_props, pins,
-                   concept_network, nav_selection, add_mode):
+                   pin_clicks, pin_ids, nav_selection, add_mode):
 
-    out_add_mode = out_selection_id = selection_id = out_network = out_prop_path = out_pins = no_update
+    out_add_mode = out_selection_id = selection_id = out_network = out_prop = out_pins = no_update
     trigger = ctx.triggered_id
     if not trigger:
         raise PreventUpdate
     
     add_category = None
     if add_mode:
-        for s in ctx.states_list[2]:
+        for s in ctx.states_list[1]:
             if 'value' in s and s['value'] == True:
                 add_category = s['id']['add_button']
                 break
@@ -95,76 +95,62 @@ def select_concept(concepts, clicked_concept, network_selections, props, sup_pro
                 out_add_mode = [add_category, clicked_id]
             elif concept_type == 'properties':
                 selection_id = parent
-                if selection_id == nav_selection:
-                    out_prop_path = Patch()
-                    # out_prop_path['property_path'].append(clicked_id)
-                    out_prop_path['property_path'] = [clicked_id]
-                else:
-                    out_prop_path = {'parent': selection_id, 'property_path' : [clicked_id]}
-
+                out_prop = clicked_id
             else:
                 selection_id = None if (clicked_id == nav_selection) else clicked_id
-                out_network = network_stylesheet(selection_id)
 
         case 'concepts_unselected':
             selection_id = None
-            out_network = network_stylesheet()
 
-        case {'copy' : concept_buttons, 'concept_buttons' : concept_type}:
-            for n, s in enumerate(ctx.inputs_list[0]):
-                if s['id'] == {'copy' : concept_buttons, 'concept_buttons' : concept_type}:
-                    break
-            if add_category == 'pins':
-                out_pins = Patch()
-                out_pins.append(concepts[n][0])
-            elif add_category is None: # todo handle pinned properties
-                pass
-                # concept_type = concept
-                # if concept_type == 'properties':
-                #     selection_id = parent
-                #     if selection_id == nav_selection:
-                #         out_prop_path = Patch()
-                #         # out_prop_path['property_path'].append(clicked_id)
-                #         out_prop_path['property_path'] = [clicked_id]
-                #     else:
-                #         out_prop_path = {'parent': selection_id, 'property_path' : [clicked_id]}
-                # else:
-                #     selection_id = concepts[n][0]
-                #     out_network = network_stylesheet(selection_id)
+        case {'concept_buttons' : concept_type}:
+            if value_if_exists(concepts):
+                if add_category == 'pins':
+                    out_pins = Patch()
+                    out_pins.append(concepts[0])
+                elif add_category is None:
+                    selection_id = concepts[0]
         
         case {'property_buttons' : _}:
             if value_if_exists(props): # ignore when a property button is added to the layout
                 if add_category == 'pins':
                     out_pins = Patch()
-                    out_pins.append(props[0][-1])
+                    out_pins.append(props[0])
                 elif add_category is None:
-                    out_prop_path = Patch()
-                    out_prop_path['property_path'] = props[0]
+                    out_prop = props[0]
         
         case {'superset_property_buttons' : superset_id}:
             if value_if_exists(sup_props):
                 if add_category == 'pins':
                     out_pins = Patch()
-                    out_pins.append(sup_props[0][-1])
+                    out_pins.append(sup_props[0])
                 else:
-                    out_prop_path = {'parent': superset_id, 'property_path' : sup_props[0]}
-        
-        # case {'tabs' : 'existence_dummy', 'tab_type' : 'section_tabs'}:
-        #     out_prop_path = Patch()
-        #     out_prop_path['property_path'] = []
+                    out_prop = sup_props[0]                  
         
         case {'pins_label' : _} if pins[0]:
             selection_id = 'pins'
-            out_network = network_stylesheet()
+
+        case {'id' : concept_id, 'pin_button' : concept_type, 'parent' : parent}:
+            if pin_clicks[pin_ids.index(trigger)]:
+                if add_category:
+                    if add_category != 'pins':
+                        out_add_mode = [add_category, concept_id]
+                elif concept_type == 'property':
+                    selection_id = parent
+                    out_prop = concept_id
+                else:
+                    selection_id = None if (concept_id == nav_selection) else concept_id            
 
     if selection_id == nav_selection:
         selection_id = no_update
         
     out_selection_id = selection_id
-
-    if (out_selection_id != no_update) and (out_prop_path == no_update):
-        out_prop_path = {'parent': out_selection_id, 'property_path' : []}
-    return out_add_mode, out_selection_id, out_network, out_prop_path, out_pins
+    if out_selection_id in (None, 'pins'):
+        out_network = network_stylesheet()
+    elif out_selection_id != no_update:
+        out_network = network_stylesheet(out_selection_id)
+        if (out_prop == no_update):
+            out_prop = None
+    return out_add_mode, out_selection_id, out_network, out_prop, out_pins
 
 @callback(
     Output('last_concept_click', 'data'),
